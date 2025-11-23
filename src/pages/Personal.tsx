@@ -156,30 +156,29 @@ export default function Personal() {
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Daily Expense Graph
         </h2>
-        <div className="h-64 flex items-end justify-between gap-1 px-2">
+        <div className="h-80 flex items-end justify-start gap-0.5 overflow-x-auto pb-8">
           {dailyExpenses.map(({ day, amount }) => (
-            <div key={day} className="flex-1 flex flex-col items-center justify-end group relative">
+            <div key={day} className="flex flex-col items-center justify-end group relative" style={{ minWidth: '28px' }}>
               {/* Bar */}
               <div
-                className={`w-full rounded-t transition-all ${
+                className={`w-7 rounded-t transition-all cursor-pointer ${
                   amount > 0
                     ? 'bg-red-500 hover:bg-red-600'
                     : 'bg-gray-200 dark:bg-gray-700'
                 }`}
                 style={{
-                  height: amount > 0 ? `${(amount / maxDailyExpense) * 100}%` : '2px',
-                  minHeight: '2px'
+                  height: amount > 0 ? `${Math.max((amount / maxDailyExpense) * 240, 4)}px` : '4px'
                 }}
               >
                 {/* Tooltip */}
                 {amount > 0 && (
-                  <div className="invisible group-hover:visible absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-10">
-                    Day {day}: ₱{amount.toLocaleString()}
+                  <div className="invisible group-hover:visible absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-10 pointer-events-none">
+                    Day {day}<br/>₱{amount.toLocaleString()}
                   </div>
                 )}
               </div>
               {/* Day label */}
-              <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">
                 {day}
               </span>
             </div>
