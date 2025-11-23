@@ -9,7 +9,7 @@ import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
 
 interface Transaction {
-  date: string
+  date: string | number // Can be string from form or number (Excel serial) from upload
   type: 'income' | 'expense'
   category: string
   amount: number
@@ -262,8 +262,14 @@ export default function Upload() {
 
     const form = e.currentTarget
     const formData = new FormData(form)
+    
+    // Convert date string to Excel serial number for consistency
+    const dateString = formData.get('date') as string
+    const jsDate = new Date(dateString)
+    const excelDate = Math.floor((jsDate.getTime() / 86400000) + 25569)
+    
     const transaction: Transaction = {
-      date: formData.get('date') as string,
+      date: excelDate, // Store as Excel serial number
       type: formData.get('type') as 'income' | 'expense',
       category: '', // Not used anymore
       amount: parseFloat(formData.get('amount') as string),
