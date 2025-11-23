@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useBranch } from '../contexts/BranchContext'
 import { useAuth } from '../contexts/AuthContext'
-import { Upload as UploadIcon, FileSpreadsheet, Plus, History } from 'lucide-react'
+import { Upload as UploadIcon, FileSpreadsheet, Plus, History, CheckCircle } from 'lucide-react'
 import { db } from '../lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import Papa from 'papaparse'
@@ -25,6 +26,8 @@ export default function Upload() {
   const [uploading, setUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [recentUploads, setRecentUploads] = useState<any[]>([])
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const bulkInputRef = useRef<HTMLInputElement>(null)
   const dailyInputRef = useRef<HTMLInputElement>(null)
@@ -290,6 +293,7 @@ export default function Upload() {
 
       toast.success('Transaction added successfully!', { id: addToast })
       form.reset()
+      setShowSuccessModal(true)
     } catch (error: any) {
       console.error('Add transaction error:', error)
       toast.error(error.message || 'Failed to add transaction', { id: addToast })
@@ -572,6 +576,40 @@ export default function Upload() {
           )}
         </div>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full mx-4 text-center">
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Transaction Added!
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Your transaction has been successfully saved to the database.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false)
+                  navigate('/database')
+                }}
+                className="w-full px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+              >
+                View in Database →
+              </button>
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium rounded-lg transition-colors"
+              >
+                Add Another Transaction
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
