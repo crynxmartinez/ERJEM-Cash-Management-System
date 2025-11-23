@@ -31,11 +31,27 @@ export default function Personal() {
     fetchTransactions()
   }, [currentBranch])
 
-  const totalPersonalExpenses = transactions.reduce((sum, t) => sum + (t.amount || 0), 0)
-  const totalIncome = transactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + (t.amount || 0), 0)
-  const personalExpenseRatio = totalIncome > 0 ? ((totalPersonalExpenses / totalIncome) * 100).toFixed(1) : 0
+  // Filter transactions by selected month/year
+  const filteredTransactions = transactions
+    .filter(t => {
+      if (typeof t.date === 'number') {
+        const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+        return jsDate.getMonth() === selectedMonth && jsDate.getFullYear() === selectedYear
+      }
+      return false
+    })
+    .sort((a, b) => {
+      if (typeof a.date === 'number' && typeof b.date === 'number') {
+        return b.date - a.date // Latest first
+      }
+      return 0
+    })
+
+  // Total expenses (all time)
+  const totalExpenses = transactions.reduce((sum, t) => sum + (t.amount || 0), 0)
+  
+  // Monthly expenses (filtered month)
+  const monthlyExpenses = filteredTransactions.reduce((sum, t) => sum + (t.amount || 0), 0)
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -98,29 +114,21 @@ export default function Personal() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            Total Personal Expenses
+            Total Expenses (All Time)
           </h3>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-            ₱{totalPersonalExpenses.toLocaleString()}
+            ₱{totalExpenses.toLocaleString()}
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            Total Income
+            Monthly Expenses ({months[selectedMonth]} {selectedYear})
           </h3>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-            ₱{totalIncome.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            Personal Expense Ratio
-          </h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-            {personalExpenseRatio}%
+            ₱{monthlyExpenses.toLocaleString()}
           </p>
         </div>
       </div>
@@ -141,29 +149,48 @@ export default function Personal() {
           Personal Transactions
         </h2>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Date
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Description
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Category
-                </th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Amount
-                </th>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-900">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Date</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Type</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Amount</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Description</th>
               </tr>
             </thead>
-            <tbody>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <td colSpan={4} className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  No transactions found for this period
-                </td>
-              </tr>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
+                    No transactions found for this period
+                  </td>
+                </tr>
+              ) : (
+                filteredTransactions.map((t: any) => (
+                  <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-3 py-3 text-gray-900 dark:text-white">
+                      {typeof t.date === 'number' 
+                        ? new Date((t.date - 25569) * 86400 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        : t.date}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        t.type === 'income'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      }`}>
+                        {t.type}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-right font-medium text-gray-900 dark:text-white">
+                      ₱{t.amount.toLocaleString()}
+                    </td>
+                    <td className="px-3 py-3 text-gray-900 dark:text-white">
+                      {t.description}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
