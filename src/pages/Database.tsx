@@ -23,6 +23,7 @@ export default function Database() {
   const [showFilters, setShowFilters] = useState(false)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   useEffect(() => {
     if (!currentBranch) {
@@ -68,16 +69,15 @@ export default function Database() {
     fetchTransactions()
   }, [currentBranch])
 
-  const handleDelete = async (transactionId: string) => {
-    if (!confirm('Are you sure you want to delete this transaction?')) {
-      return
-    }
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return
 
     const deleteToast = toast.loading('Deleting transaction...')
     try {
-      await deleteDoc(doc(db, 'transactions', transactionId))
-      setTransactions(transactions.filter(t => t.id !== transactionId))
+      await deleteDoc(doc(db, 'transactions', deleteConfirm))
+      setTransactions(transactions.filter(t => t.id !== deleteConfirm))
       toast.success('Transaction deleted successfully!', { id: deleteToast })
+      setDeleteConfirm(null)
     } catch (error: any) {
       console.error('Delete error:', error)
       toast.error('Failed to delete transaction', { id: deleteToast })
@@ -283,7 +283,7 @@ export default function Database() {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(transaction.id)}
+                          onClick={() => setDeleteConfirm(transaction.id)}
                           className="p-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                           title="Delete"
                         >
@@ -314,6 +314,44 @@ export default function Database() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Delete Transaction
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  This action cannot be undone
+                </p>
+              </div>
+            </div>
+            <p className="text-gray-700 dark:text-gray-300 mb-6">
+              Are you sure you want to delete this transaction? This will permanently remove it from your records.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
