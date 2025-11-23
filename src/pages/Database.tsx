@@ -105,19 +105,19 @@ export default function Database() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">Total Entries</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">1,234</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">0</p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">Total Income</p>
-          <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">₱500,000</p>
+          <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">₱0</p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">Total Expenses</p>
-          <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">₱300,000</p>
+          <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">₱0</p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">Net Profit</p>
-          <p className="text-2xl font-bold text-primary-600 dark:text-primary-400 mt-1">₱200,000</p>
+          <p className="text-2xl font-bold text-primary-600 dark:text-primary-400 mt-1">₱0</p>
         </div>
       </div>
 
@@ -157,46 +157,6 @@ export default function Database() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {/* Placeholder row */}
-              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <input type="checkbox" className="rounded" />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  11/23/2024
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400">
-                    Income
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  Project
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                  ABC Project Payment
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                  Client A
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900 dark:text-white">
-                  ₱50,000
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">No</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                  <div className="flex items-center justify-center gap-2">
-                    <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              {/* Empty state */}
               <tr>
                 <td colSpan={9} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                   No transactions found. Start by adding your first transaction.
@@ -209,14 +169,14 @@ export default function Database() {
         {/* Pagination */}
         <div className="bg-gray-50 dark:bg-gray-900 px-6 py-4 flex items-center justify-between border-t border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-700 dark:text-gray-300">
-            Showing <span className="font-medium">1</span> to <span className="font-medium">10</span> of{' '}
+            Showing <span className="font-medium">0</span> to <span className="font-medium">0</span> of{' '}
             <span className="font-medium">0</span> results
           </div>
           <div className="flex gap-2">
-            <button className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50">
+            <button disabled className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50">
               Previous
             </button>
-            <button className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50">
+            <button disabled className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50">
               Next
             </button>
           </div>

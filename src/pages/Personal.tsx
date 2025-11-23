@@ -73,7 +73,7 @@ export default function Personal() {
             Total Personal Expenses
           </h3>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-            ₱15,000
+            ₱0
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -81,7 +81,7 @@ export default function Personal() {
             Total Income
           </h3>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-            ₱50,000
+            ₱0
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -89,7 +89,7 @@ export default function Personal() {
             Personal Expense Ratio
           </h3>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-            30%
+            0%
           </p>
         </div>
       </div>
@@ -100,7 +100,7 @@ export default function Personal() {
           Expense Breakdown
         </h2>
         <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
-          Pie chart will be displayed here
+          No data available
         </div>
       </div>
 

@@ -122,20 +122,20 @@ export default function Monthly() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">% Expenses</p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-2">
-              +8.5%
+            <p className="text-2xl font-bold text-gray-600 dark:text-gray-400 mt-2">
+              0%
             </p>
           </div>
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">% Income</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-2">
-              +12.3%
+            <p className="text-2xl font-bold text-gray-600 dark:text-gray-400 mt-2">
+              0%
             </p>
           </div>
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">% Profit</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-2">
-              +18.7%
+            <p className="text-2xl font-bold text-gray-600 dark:text-gray-400 mt-2">
+              0%
             </p>
           </div>
         </div>
@@ -152,25 +152,25 @@ export default function Monthly() {
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Expenses</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱30,000
+                ₱0
               </span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Income</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱50,000
+                ₱0
               </span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Profit</span>
-              <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                ₱20,000
+              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                ₱0
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-700 dark:text-gray-300">Profit to Saving</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱10,000
+                ₱0
               </span>
             </div>
           </div>
@@ -185,25 +185,25 @@ export default function Monthly() {
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Expenses</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱27,650
+                ₱0
               </span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Income</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱44,500
+                ₱0
               </span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Profit</span>
-              <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                ₱16,850
+              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                ₱0
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-700 dark:text-gray-300">Profit to Saving</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱8,425
+                ₱0
               </span>
             </div>
           </div>

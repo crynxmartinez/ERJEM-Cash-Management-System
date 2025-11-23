@@ -8,33 +8,33 @@ export default function Dashboard() {
   const [year1, setYear1] = useState(currentYear)
   const [year2, setYear2] = useState(currentYear - 1)
 
-  // Placeholder data - will be replaced with real Firestore data
+  // TODO: Fetch real data from Firestore
   const kpiData = [
     {
       title: 'Total Income',
-      value: '₱500,000',
-      change: 15.3,
+      value: '₱0',
+      change: 0,
       trend: 'up' as const,
       icon: DollarSign,
     },
     {
       title: 'Total Expenses',
-      value: '₱300,000',
-      change: 8.2,
+      value: '₱0',
+      change: 0,
       trend: 'up' as const,
       icon: TrendingUp,
     },
     {
       title: 'Net Profit',
-      value: '₱200,000',
-      change: 25.5,
+      value: '₱0',
+      change: 0,
       trend: 'up' as const,
       icon: TrendingUp,
     },
     {
       title: 'Savings',
-      value: '₱100,000',
-      change: 12.8,
+      value: '₱0',
+      change: 0,
       trend: 'up' as const,
       icon: PiggyBank,
     },
@@ -139,38 +139,38 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              November 2024
+              Current Month
             </h3>
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-700 dark:text-gray-300">Income:</span>
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  ₱50,000
+                  ₱0
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-700 dark:text-gray-300">Expenses:</span>
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  ₱30,000
+                  ₱0
                 </span>
               </div>
             </div>
           </div>
           <div>
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              October 2024
+              Last Month
             </h3>
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-700 dark:text-gray-300">Income:</span>
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  ₱45,000
+                  ₱0
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-700 dark:text-gray-300">Expenses:</span>
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  ₱28,000
+                  ₱0
                 </span>
               </div>
             </div>
@@ -178,13 +178,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Placeholder for Charts */}
+      {/* Charts Section */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Financial Trends
         </h2>
         <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
-          Charts will be implemented with Recharts
+          No data available
         </div>
       </div>
     </div>
