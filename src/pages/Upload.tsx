@@ -2,8 +2,7 @@ import { useState, useRef } from 'react'
 import { useBranch } from '../contexts/BranchContext'
 import { useAuth } from '../contexts/AuthContext'
 import { Upload as UploadIcon, FileSpreadsheet, Plus, History } from 'lucide-react'
-import { storage, db } from '../lib/firebase'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { db } from '../lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
@@ -140,22 +139,17 @@ export default function Upload() {
       
       if (transactions.length === 0) {
         toast.error('No valid transactions found in file', { id: uploadToast })
+        setUploading(false)
         return
       }
 
-      // Upload file to Storage
-      const storageRef = ref(storage, `uploads/${currentBranch.id}/${Date.now()}_${selectedFile.name}`)
-      await uploadBytes(storageRef, selectedFile)
-      const downloadURL = await getDownloadURL(storageRef)
-
-      // Save transactions to Firestore
+      // Save transactions directly to Firestore (skip Storage upload to avoid CORS)
       const batch = transactions.map(async (transaction) => {
         await addDoc(collection(db, 'transactions'), {
           ...transaction,
           branchId: currentBranch.id,
           userId: currentUser.uid,
           uploadedAt: serverTimestamp(),
-          fileUrl: downloadURL,
           fileName: selectedFile.name
         })
       })
@@ -166,8 +160,7 @@ export default function Upload() {
       const uploadRecord = {
         fileName: selectedFile.name,
         recordCount: transactions.length,
-        uploadedAt: new Date().toISOString(),
-        fileUrl: downloadURL
+        uploadedAt: new Date().toISOString()
       }
       setRecentUploads([uploadRecord, ...recentUploads.slice(0, 4)])
 
