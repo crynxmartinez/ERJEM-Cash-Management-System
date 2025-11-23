@@ -1,10 +1,34 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useBranch } from '../contexts/BranchContext'
+import { useAuth } from '../contexts/AuthContext'
 import { Upload as UploadIcon, FileSpreadsheet, Plus, History } from 'lucide-react'
+import { storage, db } from '../lib/firebase'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import Papa from 'papaparse'
+import * as XLSX from 'xlsx'
+import toast from 'react-hot-toast'
+
+interface Transaction {
+  date: string
+  type: 'income' | 'expense'
+  category: string
+  amount: number
+  source: string
+  description: string
+  isPersonal: boolean
+}
 
 export default function Upload() {
   const { currentBranch } = useBranch()
+  const { currentUser } = useAuth()
   const [dragActive, setDragActive] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [recentUploads, setRecentUploads] = useState<any[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const bulkInputRef = useRef<HTMLInputElement>(null)
+  const dailyInputRef = useRef<HTMLInputElement>(null)
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -20,7 +44,178 @@ export default function Upload() {
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
-    // Handle file drop
+    
+    const files = e.dataTransfer.files
+    if (files && files[0]) {
+      handleFileSelect(files[0])
+    }
+  }
+
+  const handleFileSelect = async (file: File) => {
+    if (!file) return
+
+    const validTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(csv|xlsx|xls)$/)) {
+      toast.error('Please upload a CSV or Excel file')
+      return
+    }
+
+    setSelectedFile(file)
+    toast.success(`File selected: ${file.name}`)
+  }
+
+  const parseFile = async (file: File): Promise<Transaction[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result
+          let transactions: Transaction[] = []
+
+          if (file.name.endsWith('.csv')) {
+            // Parse CSV
+            Papa.parse(data as string, {
+              header: true,
+              skipEmptyLines: true,
+              complete: (results) => {
+                transactions = results.data.map((row: any) => ({
+                  date: row.date || row.Date || '',
+                  type: (row.type || row.Type || '').toLowerCase() as 'income' | 'expense',
+                  category: row.category || row.Category || '',
+                  amount: parseFloat(row.amount || row.Amount || '0'),
+                  source: row.source || row.Source || '',
+                  description: row.description || row.Description || '',
+                  isPersonal: (row.personal || row.Personal || 'false').toLowerCase() === 'true'
+                }))
+                resolve(transactions)
+              },
+              error: (error: any) => reject(error)
+            })
+          } else {
+            // Parse Excel
+            const workbook = XLSX.read(data, { type: 'binary' })
+            const sheetName = workbook.SheetNames[0]
+            const worksheet = workbook.Sheets[sheetName]
+            const jsonData = XLSX.utils.sheet_to_json(worksheet)
+
+            transactions = jsonData.map((row: any) => ({
+              date: row.date || row.Date || '',
+              type: (row.type || row.Type || '').toLowerCase() as 'income' | 'expense',
+              category: row.category || row.Category || '',
+              amount: parseFloat(row.amount || row.Amount || '0'),
+              source: row.source || row.Source || '',
+              description: row.description || row.Description || '',
+              isPersonal: (row.personal || row.Personal || 'false').toLowerCase() === 'true'
+            }))
+            resolve(transactions)
+          }
+        } catch (error) {
+          reject(error)
+        }
+      }
+
+      reader.onerror = () => reject(new Error('Failed to read file'))
+
+      if (file.name.endsWith('.csv')) {
+        reader.readAsText(file)
+      } else {
+        reader.readAsBinaryString(file)
+      }
+    })
+  }
+
+  const uploadToFirebase = async () => {
+    if (!selectedFile || !currentUser || !currentBranch) {
+      toast.error('Missing required information')
+      return
+    }
+
+    setUploading(true)
+    const uploadToast = toast.loading('Processing file...')
+
+    try {
+      // Parse the file
+      const transactions = await parseFile(selectedFile)
+      
+      if (transactions.length === 0) {
+        toast.error('No valid transactions found in file', { id: uploadToast })
+        return
+      }
+
+      // Upload file to Storage
+      const storageRef = ref(storage, `uploads/${currentBranch.id}/${Date.now()}_${selectedFile.name}`)
+      await uploadBytes(storageRef, selectedFile)
+      const downloadURL = await getDownloadURL(storageRef)
+
+      // Save transactions to Firestore
+      const batch = transactions.map(async (transaction) => {
+        await addDoc(collection(db, 'transactions'), {
+          ...transaction,
+          branchId: currentBranch.id,
+          userId: currentUser.uid,
+          uploadedAt: serverTimestamp(),
+          fileUrl: downloadURL,
+          fileName: selectedFile.name
+        })
+      })
+
+      await Promise.all(batch)
+
+      // Add to recent uploads
+      const uploadRecord = {
+        fileName: selectedFile.name,
+        recordCount: transactions.length,
+        uploadedAt: new Date().toISOString(),
+        fileUrl: downloadURL
+      }
+      setRecentUploads([uploadRecord, ...recentUploads.slice(0, 4)])
+
+      toast.success(`Successfully uploaded ${transactions.length} transactions!`, { id: uploadToast })
+      setSelectedFile(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    } catch (error: any) {
+      console.error('Upload error:', error)
+      toast.error(error.message || 'Failed to upload file', { id: uploadToast })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleQuickAdd = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!currentUser || !currentBranch) {
+      toast.error('Please login and select a branch')
+      return
+    }
+
+    const formData = new FormData(e.currentTarget)
+    const transaction: Transaction = {
+      date: formData.get('date') as string,
+      type: formData.get('type') as 'income' | 'expense',
+      category: formData.get('category') as string,
+      amount: parseFloat(formData.get('amount') as string),
+      source: formData.get('source') as string,
+      description: formData.get('description') as string,
+      isPersonal: formData.get('isPersonal') === 'on'
+    }
+
+    const addToast = toast.loading('Adding transaction...')
+
+    try {
+      await addDoc(collection(db, 'transactions'), {
+        ...transaction,
+        branchId: currentBranch.id,
+        userId: currentUser.uid,
+        createdAt: serverTimestamp()
+      })
+
+      toast.success('Transaction added successfully!', { id: addToast })
+      e.currentTarget.reset()
+    } catch (error: any) {
+      console.error('Add transaction error:', error)
+      toast.error(error.message || 'Failed to add transaction', { id: addToast })
+    }
   }
 
   return (
@@ -50,7 +245,17 @@ export default function Upload() {
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Upload Excel or CSV files with historical data
           </p>
-          <button className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+          <input
+            ref={bulkInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            className="hidden"
+            onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
+          />
+          <button 
+            onClick={() => bulkInputRef.current?.click()}
+            className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+          >
             Choose File
           </button>
         </div>
@@ -68,9 +273,12 @@ export default function Upload() {
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Manually add a single transaction
           </p>
-          <button className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+          <a 
+            href="#quick-add-form"
+            className="block w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-center"
+          >
             Add Transaction
-          </button>
+          </a>
         </div>
 
         {/* Daily Upload */}
@@ -86,7 +294,17 @@ export default function Upload() {
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Upload today's transactions
           </p>
-          <button className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+          <input
+            ref={dailyInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            className="hidden"
+            onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
+          />
+          <button 
+            onClick={() => dailyInputRef.current?.click()}
+            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
             Upload CSV
           </button>
         </div>
@@ -116,10 +334,12 @@ export default function Upload() {
             or click to browse
           </p>
           <input
+            ref={fileInputRef}
             type="file"
             accept=".csv,.xlsx,.xls"
             className="hidden"
             id="file-upload"
+            onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
           />
           <label
             htmlFor="file-upload"
@@ -128,6 +348,21 @@ export default function Upload() {
             <UploadIcon className="w-4 h-4" />
             <span>Choose File</span>
           </label>
+          
+          {selectedFile && (
+            <div className="mt-4 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+              <p className="text-sm text-gray-900 dark:text-white font-medium">
+                Selected: {selectedFile.name}
+              </p>
+              <button
+                onClick={uploadToFirebase}
+                disabled={uploading}
+                className="mt-2 w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
+              >
+                {uploading ? 'Uploading...' : 'Upload & Process'}
+              </button>
+            </div>
+          )}
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
             Supported formats: CSV, Excel (.xlsx, .xls)
           </p>
@@ -139,14 +374,16 @@ export default function Upload() {
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Quick Add Transaction
         </h2>
-        <form className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <form id="quick-add-form" onSubmit={handleQuickAdd} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Date
             </label>
             <input
+              name="date"
               type="date"
               defaultValue={new Date().toISOString().split('T')[0]}
+              required
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
             />
           </div>
@@ -154,7 +391,7 @@ export default function Upload() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Type
             </label>
-            <select className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500">
+            <select name="type" required className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500">
               <option value="income">Income</option>
               <option value="expense">Expense</option>
             </select>
@@ -164,8 +401,10 @@ export default function Upload() {
               Category
             </label>
             <input
+              name="category"
               type="text"
               placeholder="e.g., Project, Salary"
+              required
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
             />
           </div>
@@ -174,8 +413,11 @@ export default function Upload() {
               Amount
             </label>
             <input
+              name="amount"
               type="number"
+              step="0.01"
               placeholder="0.00"
+              required
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
             />
           </div>
@@ -184,8 +426,10 @@ export default function Upload() {
               Source
             </label>
             <input
+              name="source"
               type="text"
               placeholder="Income/Expense From"
+              required
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
             />
           </div>
@@ -194,14 +438,16 @@ export default function Upload() {
               Description
             </label>
             <input
+              name="description"
               type="text"
               placeholder="Project name or details"
+              required
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
             />
           </div>
           <div className="flex items-end">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" className="rounded" />
+              <input name="isPersonal" type="checkbox" className="rounded" />
               <span className="text-sm text-gray-700 dark:text-gray-300">
                 Personal Expense
               </span>
@@ -239,19 +485,37 @@ export default function Upload() {
           </h2>
         </div>
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="flex items-center gap-3">
-              <FileSpreadsheet className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  No uploads yet
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Start by uploading your first file
-                </p>
+          {recentUploads.length === 0 ? (
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    No uploads yet
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Start by uploading your first file
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            recentUploads.map((upload, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <FileSpreadsheet className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {upload.fileName}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {upload.recordCount} records • {new Date(upload.uploadedAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
