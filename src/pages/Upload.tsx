@@ -264,9 +264,9 @@ export default function Upload() {
     const transaction: Transaction = {
       date: formData.get('date') as string,
       type: formData.get('type') as 'income' | 'expense',
-      category: formData.get('category') as string,
+      category: '', // Not used anymore
       amount: parseFloat(formData.get('amount') as string),
-      source: formData.get('source') as string,
+      source: '', // Not used anymore
       description: formData.get('description') as string,
       isPersonal: formData.get('isPersonal') === 'on'
     }
@@ -469,18 +469,6 @@ export default function Upload() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Category
-            </label>
-            <input
-              name="category"
-              type="text"
-              placeholder="e.g., Project, Salary"
-              required
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Amount
             </label>
             <input
@@ -488,18 +476,6 @@ export default function Upload() {
               type="number"
               step="0.01"
               placeholder="0.00"
-              required
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Source
-            </label>
-            <input
-              name="source"
-              type="text"
-              placeholder="Income/Expense From"
               required
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
             />
