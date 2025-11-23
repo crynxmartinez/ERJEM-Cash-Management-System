@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useBranch } from '../contexts/BranchContext'
 import { Search, Filter, Download, Plus } from 'lucide-react'
 import { db } from '../lib/firebase'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { collection, getDocs } from 'firebase/firestore'
 import toast from 'react-hot-toast'
 
 interface Transaction {
@@ -14,6 +14,7 @@ interface Transaction {
   source: string
   description: string
   isPersonal: boolean
+  branchId?: string
 }
 
 export default function Database() {
@@ -33,18 +34,22 @@ export default function Database() {
       setLoading(true)
       console.log('Fetching transactions for branch:', currentBranch.id)
       try {
-        const q = query(
-          collection(db, 'transactions'),
-          where('branchId', '==', currentBranch.id)
-        )
-        const querySnapshot = await getDocs(q)
-        console.log('Found transactions:', querySnapshot.size)
-        const data = querySnapshot.docs.map(doc => ({
+        // Fetch ALL transactions first to debug
+        const querySnapshot = await getDocs(collection(db, 'transactions'))
+        console.log('Total transactions in database:', querySnapshot.size)
+        
+        // Filter by branchId in memory
+        const allData = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         })) as Transaction[]
-        console.log('Transaction data:', data)
-        setTransactions(data)
+        
+        console.log('All transaction data:', allData)
+        
+        const filtered = allData.filter(t => t.branchId === currentBranch.id)
+        console.log('Filtered for branch:', filtered)
+        
+        setTransactions(filtered)
       } catch (error: any) {
         console.error('Error fetching transactions:', error)
         toast.error('Failed to load transactions: ' + error.message)
