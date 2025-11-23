@@ -232,6 +232,59 @@ export default function Monthly() {
               </span>
             </div>
           </div>
+
+          {/* Month 1 Transactions Table */}
+          <div className="mt-6">
+            <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">
+              Transactions
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-900">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Date</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Type</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Amount</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {month1Transactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-3 py-4 text-center text-gray-500 dark:text-gray-400">
+                        No transactions for this month
+                      </td>
+                    </tr>
+                  ) : (
+                    month1Transactions.map((t: any) => (
+                      <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-3 py-2 text-gray-900 dark:text-white">
+                          {typeof t.date === 'number' 
+                            ? new Date((t.date - 25569) * 86400 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            : t.date}
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            t.type === 'income'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          }`}>
+                            {t.type}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-right font-medium text-gray-900 dark:text-white">
+                          ₱{t.amount.toLocaleString()}
+                        </td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-white truncate max-w-xs">
+                          {t.description}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         {/* Month 2 Data */}
@@ -263,6 +316,59 @@ export default function Monthly() {
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
                 ₱{month2Profit.toLocaleString()}
               </span>
+            </div>
+          </div>
+
+          {/* Month 2 Transactions Table */}
+          <div className="mt-6">
+            <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">
+              Transactions
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-900">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Date</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Type</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Amount</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {month2Transactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-3 py-4 text-center text-gray-500 dark:text-gray-400">
+                        No transactions for this month
+                      </td>
+                    </tr>
+                  ) : (
+                    month2Transactions.map((t: any) => (
+                      <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-3 py-2 text-gray-900 dark:text-white">
+                          {typeof t.date === 'number' 
+                            ? new Date((t.date - 25569) * 86400 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            : t.date}
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            t.type === 'income'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          }`}>
+                            {t.type}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-right font-medium text-gray-900 dark:text-white">
+                          ₱{t.amount.toLocaleString()}
+                        </td>
+                        <td className="px-3 py-2 text-gray-900 dark:text-white truncate max-w-xs">
+                          {t.description}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
