@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useBranch } from '../contexts/BranchContext'
-import { Search, Filter, Download, Plus, Edit, Trash2 } from 'lucide-react'
+import { Search, Filter, Download, Plus } from 'lucide-react'
 
 export default function Database() {
   const { currentBranch } = useBranch()
