@@ -24,24 +24,30 @@ export default function Database() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!currentBranch) return
+    if (!currentBranch) {
+      console.log('No current branch selected')
+      return
+    }
 
     const fetchTransactions = async () => {
       setLoading(true)
+      console.log('Fetching transactions for branch:', currentBranch.id)
       try {
         const q = query(
           collection(db, 'transactions'),
           where('branchId', '==', currentBranch.id)
         )
         const querySnapshot = await getDocs(q)
+        console.log('Found transactions:', querySnapshot.size)
         const data = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         })) as Transaction[]
+        console.log('Transaction data:', data)
         setTransactions(data)
       } catch (error: any) {
         console.error('Error fetching transactions:', error)
-        toast.error('Failed to load transactions')
+        toast.error('Failed to load transactions: ' + error.message)
       } finally {
         setLoading(false)
       }
