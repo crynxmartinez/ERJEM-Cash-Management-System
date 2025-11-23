@@ -156,7 +156,7 @@ export default function Personal() {
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Daily Expense Graph
         </h2>
-        <div className="h-80 flex items-end justify-start gap-0.5 overflow-x-auto pb-8">
+        <div className="h-80 flex items-end justify-start gap-0.5 overflow-x-auto pb-8" style={{ width: 'fit-content', maxWidth: '100%' }}>
           {dailyExpenses.map(({ day, amount }) => (
             <div key={day} className="flex flex-col items-center justify-end group relative" style={{ minWidth: '28px' }}>
               {/* Bar */}
