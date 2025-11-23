@@ -1,10 +1,41 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useBranch } from '../contexts/BranchContext'
+import { db } from '../lib/firebase'
+import { collection, getDocs } from 'firebase/firestore'
 
 export default function Personal() {
   const { currentBranch } = useBranch()
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [transactions, setTransactions] = useState<any[]>([])
+
+  useEffect(() => {
+    if (!currentBranch) return
+
+    const fetchTransactions = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'transactions'))
+        const data = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        const filtered = data.filter((t: any) => 
+          t.branchId === currentBranch.id && t.isPersonal === true
+        )
+        setTransactions(filtered)
+      } catch (error) {
+        console.error('Error fetching transactions:', error)
+      }
+    }
+
+    fetchTransactions()
+  }, [currentBranch])
+
+  const totalPersonalExpenses = transactions.reduce((sum, t) => sum + (t.amount || 0), 0)
+  const totalIncome = transactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + (t.amount || 0), 0)
+  const personalExpenseRatio = totalIncome > 0 ? ((totalPersonalExpenses / totalIncome) * 100).toFixed(1) : 0
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -73,7 +104,7 @@ export default function Personal() {
             Total Personal Expenses
           </h3>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-            ₱0
+            ₱{totalPersonalExpenses.toLocaleString()}
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -81,7 +112,7 @@ export default function Personal() {
             Total Income
           </h3>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-            ₱0
+            ₱{totalIncome.toLocaleString()}
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -89,7 +120,7 @@ export default function Personal() {
             Personal Expense Ratio
           </h3>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
-            0%
+            {personalExpenseRatio}%
           </p>
         </div>
       </div>
