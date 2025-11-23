@@ -24,12 +24,6 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated();
     }
     
-    // User branches (access control)
-    match /userBranches/{userBranchId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
-    }
-    
     // Transactions collection
     match /transactions/{transactionId} {
       allow read: if isAuthenticated();

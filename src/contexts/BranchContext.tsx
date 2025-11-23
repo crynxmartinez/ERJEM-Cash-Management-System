@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, setDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { Branch } from '../types'
 import { useAuth } from './AuthContext'
@@ -71,14 +71,6 @@ export function BranchProvider({ children }: BranchProviderProps) {
 
       for (const branch of defaultBranches) {
         await setDoc(doc(db, 'branches', branch.id), branch)
-        
-        // Grant user access to this branch
-        await setDoc(doc(db, 'userBranches', `${currentUser.uid}_${branch.id}`), {
-          userId: currentUser.uid,
-          branchId: branch.id,
-          role: 'admin',
-          createdAt: new Date(),
-        })
       }
 
       toast.success('Default branches created!')
@@ -95,24 +87,12 @@ export function BranchProvider({ children }: BranchProviderProps) {
       // Initialize default branches if needed
       await initializeDefaultBranches()
 
-      // Get user's branch access
-      const userBranchesRef = collection(db, 'userBranches')
-      const userBranchesQuery = query(userBranchesRef, where('userId', '==', currentUser.uid))
-      const userBranchesSnapshot = await getDocs(userBranchesQuery)
-
-      const branchIds = userBranchesSnapshot.docs.map((doc) => doc.data().branchId)
-
-      if (branchIds.length === 0) {
-        setLoading(false)
-        return
-      }
-
-      // Get branches
+      // Get all branches directly (simplified - no userBranches needed)
       const branchesRef = collection(db, 'branches')
       const branchesSnapshot = await getDocs(branchesRef)
       const branches = branchesSnapshot.docs
         .map((doc) => ({ ...doc.data(), id: doc.id } as Branch))
-        .filter((branch) => branchIds.includes(branch.id) && branch.isActive)
+        .filter((branch) => branch.isActive)
 
       setAvailableBranches(branches)
 
