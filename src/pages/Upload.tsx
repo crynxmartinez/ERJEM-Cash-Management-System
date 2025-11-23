@@ -260,7 +260,8 @@ export default function Upload() {
       return
     }
 
-    const formData = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const formData = new FormData(form)
     const transaction: Transaction = {
       date: formData.get('date') as string,
       type: formData.get('type') as 'income' | 'expense',
@@ -282,7 +283,7 @@ export default function Upload() {
       })
 
       toast.success('Transaction added successfully!', { id: addToast })
-      e.currentTarget.reset()
+      form.reset()
     } catch (error: any) {
       console.error('Add transaction error:', error)
       toast.error(error.message || 'Failed to add transaction', { id: addToast })
