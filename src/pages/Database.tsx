@@ -49,7 +49,14 @@ export default function Database() {
         const filtered = allData.filter(t => t.branchId === currentBranch.id)
         console.log('Filtered for branch:', filtered)
         
-        setTransactions(filtered)
+        // Sort by date - latest first
+        const sorted = filtered.sort((a, b) => {
+          const dateA = typeof a.date === 'number' ? a.date : 0
+          const dateB = typeof b.date === 'number' ? b.date : 0
+          return dateB - dateA // Descending order (latest first)
+        })
+        
+        setTransactions(sorted)
       } catch (error: any) {
         console.error('Error fetching transactions:', error)
         toast.error('Failed to load transactions: ' + error.message)
@@ -206,21 +213,18 @@ export default function Database() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Description
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Actions
-                </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                     Loading transactions...
                   </td>
                 </tr>
               ) : transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                     No transactions found. Start by adding your first transaction.
                   </td>
                 </tr>
@@ -249,11 +253,6 @@ export default function Database() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                       {transaction.description}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                      <button className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300">
-                        Edit
-                      </button>
                     </td>
                   </tr>
                 ))
