@@ -34,14 +34,22 @@ export default function Monthly() {
 
   // Helper function to filter transactions by month and year
   const filterByMonthYear = (month: number, year: number) => {
-    return transactions.filter(t => {
-      if (typeof t.date === 'number') {
-        // Convert Excel date to JS date
-        const jsDate = new Date((t.date - 25569) * 86400 * 1000)
-        return jsDate.getMonth() === month && jsDate.getFullYear() === year
-      }
-      return false
-    })
+    return transactions
+      .filter(t => {
+        if (typeof t.date === 'number') {
+          // Convert Excel date to JS date
+          const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+          return jsDate.getMonth() === month && jsDate.getFullYear() === year
+        }
+        return false
+      })
+      .sort((a, b) => {
+        // Sort by date ascending (earliest first)
+        if (typeof a.date === 'number' && typeof b.date === 'number') {
+          return a.date - b.date
+        }
+        return 0
+      })
   }
 
   // Month 1 calculations
