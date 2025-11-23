@@ -1,41 +1,77 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useBranch } from '../contexts/BranchContext'
 import { TrendingUp, TrendingDown, DollarSign, PiggyBank } from 'lucide-react'
+import { db } from '../lib/firebase'
+import { collection, getDocs } from 'firebase/firestore'
 
 export default function Dashboard() {
   const { currentBranch } = useBranch()
   const currentYear = new Date().getFullYear()
   const [year1, setYear1] = useState(currentYear)
   const [year2, setYear2] = useState(currentYear - 1)
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // TODO: Fetch real data from Firestore
+  useEffect(() => {
+    if (!currentBranch) return
+
+    const fetchTransactions = async () => {
+      setLoading(true)
+      try {
+        const querySnapshot = await getDocs(collection(db, 'transactions'))
+        const data = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        const filtered = data.filter((t: any) => t.branchId === currentBranch.id)
+        setTransactions(filtered)
+      } catch (error) {
+        console.error('Error fetching transactions:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTransactions()
+  }, [currentBranch])
+
+  const totalIncome = transactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + (t.amount || 0), 0)
+
+  const totalExpenses = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + (t.amount || 0), 0)
+
+  const netProfit = totalIncome - totalExpenses
+
   const kpiData = [
     {
       title: 'Total Income',
-      value: '₱0',
+      value: `₱${totalIncome.toLocaleString()}`,
       change: 0,
       trend: 'up' as const,
       icon: DollarSign,
     },
     {
       title: 'Total Expenses',
-      value: '₱0',
+      value: `₱${totalExpenses.toLocaleString()}`,
       change: 0,
       trend: 'up' as const,
       icon: TrendingUp,
     },
     {
       title: 'Net Profit',
-      value: '₱0',
+      value: `₱${netProfit.toLocaleString()}`,
       change: 0,
-      trend: 'up' as const,
+      trend: netProfit >= 0 ? 'up' as const : 'down' as const,
       icon: TrendingUp,
     },
     {
       title: 'Savings',
-      value: '₱0',
+      value: `₱${netProfit.toLocaleString()}`,
       change: 0,
-      trend: 'up' as const,
+      trend: netProfit >= 0 ? 'up' as const : 'down' as const,
       icon: PiggyBank,
     },
   ]
