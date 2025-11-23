@@ -40,6 +40,15 @@ export default function Dashboard() {
     return false
   })
 
+  // Filter transactions by year2
+  const year2Transactions = transactions.filter(t => {
+    if (typeof t.date === 'number') {
+      const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+      return jsDate.getFullYear() === year2
+    }
+    return false
+  })
+
   const totalIncome = year1Transactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + (t.amount || 0), 0)
@@ -55,8 +64,8 @@ export default function Dashboard() {
   const netProfit = totalIncome - totalExpenses
   const totalSavings = netProfit - personalExpenses
 
-  // Calculate monthly data for line graph
-  const monthlyData = Array.from({ length: 12 }, (_, month) => {
+  // Calculate monthly data for year1
+  const year1MonthlyData = Array.from({ length: 12 }, (_, month) => {
     const monthTransactions = year1Transactions.filter(t => {
       if (typeof t.date === 'number') {
         const jsDate = new Date((t.date - 25569) * 86400 * 1000)
@@ -76,9 +85,31 @@ export default function Dashboard() {
     return { month, income, expenses }
   })
 
-  // Set Y-axis to dynamic scale based on data, rounded up to nearest 100k
+  // Calculate monthly data for year2
+  const year2MonthlyData = Array.from({ length: 12 }, (_, month) => {
+    const monthTransactions = year2Transactions.filter(t => {
+      if (typeof t.date === 'number') {
+        const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+        return jsDate.getMonth() === month
+      }
+      return false
+    })
+    
+    const income = monthTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + (t.amount || 0), 0)
+    
+    const expenses = monthTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + (t.amount || 0), 0)
+    
+    return { month, income, expenses }
+  })
+
+  // Set Y-axis to dynamic scale based on data from both years, rounded up to nearest 100k
   const dataMax = Math.max(
-    ...monthlyData.map(d => Math.max(d.income, d.expenses)),
+    ...year1MonthlyData.map(d => Math.max(d.income, d.expenses)),
+    ...year2MonthlyData.map(d => Math.max(d.income, d.expenses)),
     1000000 // Minimum 1M
   )
   const maxValue = Math.ceil(dataMax / 100000) * 100000 // Round up to nearest 100k
@@ -211,7 +242,7 @@ export default function Dashboard() {
       {/* Financial Trends Line Graph */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Financial Trends ({year1})
+          Financial Trends ({year1} vs {year2})
         </h2>
         <div className="h-96 relative">
           {/* Y-axis labels */}
@@ -236,26 +267,54 @@ export default function Dashboard() {
             
             {/* SVG for lines */}
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1200 100" preserveAspectRatio="none">
-              {/* Income line (blue) */}
+              {/* Year 1 Income line (blue) */}
               <polyline
                 fill="none"
                 stroke="#3b82f6"
                 strokeWidth="2"
                 vectorEffect="non-scaling-stroke"
-                points={monthlyData.map((d, i) => {
+                points={year1MonthlyData.map((d, i) => {
                   const x = (i / 11) * 1200
                   const y = 100 - (d.income / maxValue) * 100
                   return `${x},${y}`
                 }).join(' ')}
               />
               
-              {/* Expenses line (red) */}
+              {/* Year 1 Expenses line (red) */}
               <polyline
                 fill="none"
                 stroke="#ef4444"
                 strokeWidth="2"
                 vectorEffect="non-scaling-stroke"
-                points={monthlyData.map((d, i) => {
+                points={year1MonthlyData.map((d, i) => {
+                  const x = (i / 11) * 1200
+                  const y = 100 - (d.expenses / maxValue) * 100
+                  return `${x},${y}`
+                }).join(' ')}
+              />
+              
+              {/* Year 2 Income line (green) */}
+              <polyline
+                fill="none"
+                stroke="#22c55e"
+                strokeWidth="2"
+                strokeDasharray="5,5"
+                vectorEffect="non-scaling-stroke"
+                points={year2MonthlyData.map((d, i) => {
+                  const x = (i / 11) * 1200
+                  const y = 100 - (d.income / maxValue) * 100
+                  return `${x},${y}`
+                }).join(' ')}
+              />
+              
+              {/* Year 2 Expenses line (yellow) */}
+              <polyline
+                fill="none"
+                stroke="#eab308"
+                strokeWidth="2"
+                strokeDasharray="5,5"
+                vectorEffect="non-scaling-stroke"
+                points={year2MonthlyData.map((d, i) => {
                   const x = (i / 11) * 1200
                   const y = 100 - (d.expenses / maxValue) * 100
                   return `${x},${y}`
@@ -273,14 +332,22 @@ export default function Dashboard() {
         </div>
         
         {/* Legend */}
-        <div className="flex justify-center gap-6 mt-4">
+        <div className="flex justify-center gap-6 mt-4 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-4 h-0.5 bg-blue-500" />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Income</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">{year1} Income</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-0.5 bg-red-500" />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Expenses</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">{year1} Expenses</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-0.5 bg-green-500" style={{ backgroundImage: 'repeating-linear-gradient(to right, #22c55e 0, #22c55e 5px, transparent 5px, transparent 10px)' }} />
+            <span className="text-sm text-gray-700 dark:text-gray-300">{year2} Income</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-0.5 bg-yellow-500" style={{ backgroundImage: 'repeating-linear-gradient(to right, #eab308 0, #eab308 5px, transparent 5px, transparent 10px)' }} />
+            <span className="text-sm text-gray-700 dark:text-gray-300">{year2} Expenses</span>
           </div>
         </div>
       </div>
