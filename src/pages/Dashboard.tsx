@@ -76,9 +76,15 @@ export default function Dashboard() {
     return { month, income, expenses }
   })
 
-  // Set Y-axis to fixed scale: 0 to 5M in 500k increments
-  const maxValue = 5000000
-  const yAxisSteps = [5000000, 4500000, 4000000, 3500000, 3000000, 2500000, 2000000, 1500000, 1000000, 500000, 0]
+  // Set Y-axis to dynamic scale based on data, rounded up to nearest 100k
+  const dataMax = Math.max(
+    ...monthlyData.map(d => Math.max(d.income, d.expenses)),
+    1000000 // Minimum 1M
+  )
+  const maxValue = Math.ceil(dataMax / 100000) * 100000 // Round up to nearest 100k
+  const stepCount = 10
+  const stepSize = maxValue / stepCount
+  const yAxisSteps = Array.from({ length: stepCount + 1 }, (_, i) => maxValue - (i * stepSize))
 
   const kpiData = [
     {
@@ -212,7 +218,9 @@ export default function Dashboard() {
           <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400 pr-2">
             {yAxisSteps.map((value, i) => (
               <span key={i} className="text-right">
-                ₱{(value / 1000000).toFixed(1)}M
+                ₱{value >= 1000000 
+                  ? `${(value / 1000000).toFixed(1)}M` 
+                  : `${(value / 1000).toFixed(0)}k`}
               </span>
             ))}
           </div>
@@ -253,38 +261,6 @@ export default function Dashboard() {
                   return `${x},${y}`
                 }).join(' ')}
               />
-              
-              {/* Data points for income */}
-              {monthlyData.map((d, i) => {
-                const x = (i / 11) * 1200
-                const y = 100 - (d.income / maxValue) * 100
-                return (
-                  <circle
-                    key={`income-${i}`}
-                    cx={x}
-                    cy={y}
-                    r="3"
-                    fill="#3b82f6"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                )
-              })}
-              
-              {/* Data points for expenses */}
-              {monthlyData.map((d, i) => {
-                const x = (i / 11) * 1200
-                const y = 100 - (d.expenses / maxValue) * 100
-                return (
-                  <circle
-                    key={`expense-${i}`}
-                    cx={x}
-                    cy={y}
-                    r="3"
-                    fill="#ef4444"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                )
-              })}
             </svg>
             
             {/* X-axis labels (months) */}
