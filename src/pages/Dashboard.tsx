@@ -10,13 +10,11 @@ export default function Dashboard() {
   const [year1, setYear1] = useState(currentYear)
   const [year2, setYear2] = useState(currentYear - 1)
   const [transactions, setTransactions] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!currentBranch) return
 
     const fetchTransactions = async () => {
-      setLoading(true)
       try {
         const querySnapshot = await getDocs(collection(db, 'transactions'))
         const data = querySnapshot.docs.map(doc => ({
@@ -27,8 +25,6 @@ export default function Dashboard() {
         setTransactions(filtered)
       } catch (error) {
         console.error('Error fetching transactions:', error)
-      } finally {
-        setLoading(false)
       }
     }
 
