@@ -44,9 +44,9 @@ export default function Monthly() {
         return false
       })
       .sort((a, b) => {
-        // Sort by date ascending (earliest first)
+        // Sort by date descending (latest first)
         if (typeof a.date === 'number' && typeof b.date === 'number') {
-          return a.date - b.date
+          return b.date - a.date
         }
         return 0
       })
