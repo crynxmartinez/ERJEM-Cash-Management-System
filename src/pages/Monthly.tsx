@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useBranch } from '../contexts/BranchContext'
+import { db } from '../lib/firebase'
+import { collection, getDocs } from 'firebase/firestore'
 
 export default function Monthly() {
   const { currentBranch } = useBranch()
@@ -8,6 +10,31 @@ export default function Monthly() {
   const [year1, setYear1] = useState(currentDate.getFullYear())
   const [month2, setMonth2] = useState(currentDate.getMonth() - 1)
   const [year2, setYear2] = useState(currentDate.getFullYear())
+  const [transactions, setTransactions] = useState<any[]>([])
+
+  useEffect(() => {
+    if (!currentBranch) return
+
+    const fetchTransactions = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'transactions'))
+        const data = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        const filtered = data.filter((t: any) => t.branchId === currentBranch.id)
+        setTransactions(filtered)
+      } catch (error) {
+        console.error('Error fetching transactions:', error)
+      }
+    }
+
+    fetchTransactions()
+  }, [currentBranch])
+
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (t.amount || 0), 0)
+  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (t.amount || 0), 0)
+  const profit = totalIncome - totalExpenses
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -152,25 +179,25 @@ export default function Monthly() {
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Expenses</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱0
+                ₱{totalExpenses.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Income</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱0
+                ₱{totalIncome.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Profit</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱0
+                ₱{profit.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-700 dark:text-gray-300">Profit to Saving</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱0
+                ₱{profit.toLocaleString()}
               </span>
             </div>
           </div>
@@ -185,25 +212,25 @@ export default function Monthly() {
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Expenses</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱0
+                ₱{totalExpenses.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Income</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱0
+                ₱{totalIncome.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Profit</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱0
+                ₱{profit.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-700 dark:text-gray-300">Profit to Saving</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱0
+                ₱{profit.toLocaleString()}
               </span>
             </div>
           </div>
