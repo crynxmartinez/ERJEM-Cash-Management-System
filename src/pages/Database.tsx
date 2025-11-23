@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useBranch } from '../contexts/BranchContext'
-import { Search, Filter, Download, Plus } from 'lucide-react'
+import { Search, Filter, Download, Plus, Edit2, Trash2 } from 'lucide-react'
 import { db } from '../lib/firebase'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
 import toast from 'react-hot-toast'
 
 interface Transaction {
   id: string
-  date: string
+  date: string | number // Can be string or Excel serial number
   type: 'income' | 'expense'
   category: string
   amount: number
@@ -23,6 +23,7 @@ export default function Database() {
   const [showFilters, setShowFilters] = useState(false)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!currentBranch) {
@@ -67,6 +68,22 @@ export default function Database() {
 
     fetchTransactions()
   }, [currentBranch])
+
+  const handleDelete = async (transactionId: string) => {
+    if (!confirm('Are you sure you want to delete this transaction?')) {
+      return
+    }
+
+    const deleteToast = toast.loading('Deleting transaction...')
+    try {
+      await deleteDoc(doc(db, 'transactions', transactionId))
+      setTransactions(transactions.filter(t => t.id !== transactionId))
+      toast.success('Transaction deleted successfully!', { id: deleteToast })
+    } catch (error: any) {
+      console.error('Delete error:', error)
+      toast.error('Failed to delete transaction', { id: deleteToast })
+    }
+  }
 
   const totalIncome = transactions
     .filter(t => t.type === 'income')
@@ -213,18 +230,21 @@ export default function Database() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Description
                 </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                     Loading transactions...
                   </td>
                 </tr>
               ) : transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                     No transactions found. Start by adding your first transaction.
                   </td>
                 </tr>
@@ -253,6 +273,24 @@ export default function Database() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                       {transaction.description}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setEditingId(transaction.id)}
+                          className="p-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(transaction.id)}
+                          className="p-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
