@@ -53,6 +53,24 @@ export default function Personal() {
   // Monthly expenses (filtered month)
   const monthlyExpenses = filteredTransactions.reduce((sum, t) => sum + (t.amount || 0), 0)
 
+  // Calculate daily expenses for the selected month
+  const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate()
+  const dailyExpenses = Array.from({ length: daysInMonth }, (_, i) => {
+    const day = i + 1
+    const dayTotal = filteredTransactions
+      .filter(t => {
+        if (typeof t.date === 'number') {
+          const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+          return jsDate.getDate() === day
+        }
+        return false
+      })
+      .reduce((sum, t) => sum + (t.amount || 0), 0)
+    return { day, amount: dayTotal }
+  })
+
+  const maxDailyExpense = Math.max(...dailyExpenses.map(d => d.amount), 1)
+
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -133,13 +151,39 @@ export default function Personal() {
         </div>
       </div>
 
-      {/* Expense Breakdown */}
+      {/* Daily Expense Graph */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Expense Breakdown
+          Daily Expense Graph
         </h2>
-        <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
-          No data available
+        <div className="h-64 flex items-end justify-between gap-1 px-2">
+          {dailyExpenses.map(({ day, amount }) => (
+            <div key={day} className="flex-1 flex flex-col items-center justify-end group relative">
+              {/* Bar */}
+              <div
+                className={`w-full rounded-t transition-all ${
+                  amount > 0
+                    ? 'bg-red-500 hover:bg-red-600'
+                    : 'bg-gray-200 dark:bg-gray-700'
+                }`}
+                style={{
+                  height: amount > 0 ? `${(amount / maxDailyExpense) * 100}%` : '2px',
+                  minHeight: '2px'
+                }}
+              >
+                {/* Tooltip */}
+                {amount > 0 && (
+                  <div className="invisible group-hover:visible absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-10">
+                    Day {day}: ₱{amount.toLocaleString()}
+                  </div>
+                )}
+              </div>
+              {/* Day label */}
+              <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {day}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
