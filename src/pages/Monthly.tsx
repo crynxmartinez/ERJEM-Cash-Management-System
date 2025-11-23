@@ -32,9 +32,34 @@ export default function Monthly() {
     fetchTransactions()
   }, [currentBranch])
 
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (t.amount || 0), 0)
-  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (t.amount || 0), 0)
-  const profit = totalIncome - totalExpenses
+  // Helper function to filter transactions by month and year
+  const filterByMonthYear = (month: number, year: number) => {
+    return transactions.filter(t => {
+      if (typeof t.date === 'number') {
+        // Convert Excel date to JS date
+        const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+        return jsDate.getMonth() === month && jsDate.getFullYear() === year
+      }
+      return false
+    })
+  }
+
+  // Month 1 calculations
+  const month1Transactions = filterByMonthYear(month1, year1)
+  const month1Income = month1Transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (t.amount || 0), 0)
+  const month1Expenses = month1Transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (t.amount || 0), 0)
+  const month1Profit = month1Income - month1Expenses
+
+  // Month 2 calculations
+  const month2Transactions = filterByMonthYear(month2, year2)
+  const month2Income = month2Transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (t.amount || 0), 0)
+  const month2Expenses = month2Transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (t.amount || 0), 0)
+  const month2Profit = month2Income - month2Expenses
+
+  // Percentage comparisons
+  const expenseChange = month2Expenses > 0 ? (((month1Expenses - month2Expenses) / month2Expenses) * 100).toFixed(1) : '0'
+  const incomeChange = month2Income > 0 ? (((month1Income - month2Income) / month2Income) * 100).toFixed(1) : '0'
+  const profitChange = month2Profit !== 0 ? (((month1Profit - month2Profit) / Math.abs(month2Profit)) * 100).toFixed(1) : '0'
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -149,20 +174,26 @@ export default function Monthly() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">% Expenses</p>
-            <p className="text-2xl font-bold text-gray-600 dark:text-gray-400 mt-2">
-              0%
+            <p className={`text-2xl font-bold mt-2 ${
+              parseFloat(expenseChange) > 0 ? 'text-red-600' : parseFloat(expenseChange) < 0 ? 'text-green-600' : 'text-gray-600 dark:text-gray-400'
+            }`}>
+              {parseFloat(expenseChange) > 0 ? '+' : ''}{expenseChange}%
             </p>
           </div>
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">% Income</p>
-            <p className="text-2xl font-bold text-gray-600 dark:text-gray-400 mt-2">
-              0%
+            <p className={`text-2xl font-bold mt-2 ${
+              parseFloat(incomeChange) > 0 ? 'text-green-600' : parseFloat(incomeChange) < 0 ? 'text-red-600' : 'text-gray-600 dark:text-gray-400'
+            }`}>
+              {parseFloat(incomeChange) > 0 ? '+' : ''}{incomeChange}%
             </p>
           </div>
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400">% Profit</p>
-            <p className="text-2xl font-bold text-gray-600 dark:text-gray-400 mt-2">
-              0%
+            <p className={`text-2xl font-bold mt-2 ${
+              parseFloat(profitChange) > 0 ? 'text-green-600' : parseFloat(profitChange) < 0 ? 'text-red-600' : 'text-gray-600 dark:text-gray-400'
+            }`}>
+              {parseFloat(profitChange) > 0 ? '+' : ''}{profitChange}%
             </p>
           </div>
         </div>
@@ -179,25 +210,25 @@ export default function Monthly() {
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Expenses</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱{totalExpenses.toLocaleString()}
+                ₱{month1Expenses.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Income</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱{totalIncome.toLocaleString()}
+                ₱{month1Income.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Profit</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱{profit.toLocaleString()}
+                ₱{month1Profit.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-700 dark:text-gray-300">Profit to Saving</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱{profit.toLocaleString()}
+                ₱{month1Profit.toLocaleString()}
               </span>
             </div>
           </div>
@@ -212,25 +243,25 @@ export default function Monthly() {
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Expenses</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱{totalExpenses.toLocaleString()}
+                ₱{month2Expenses.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Income</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱{totalIncome.toLocaleString()}
+                ₱{month2Income.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Profit</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱{profit.toLocaleString()}
+                ₱{month2Profit.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-700 dark:text-gray-300">Profit to Saving</span>
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱{profit.toLocaleString()}
+                ₱{month2Profit.toLocaleString()}
               </span>
             </div>
           </div>
