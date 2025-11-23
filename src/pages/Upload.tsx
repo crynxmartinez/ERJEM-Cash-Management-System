@@ -78,15 +78,54 @@ export default function Upload() {
               header: true,
               skipEmptyLines: true,
               complete: (results) => {
-                transactions = results.data.map((row: any) => ({
-                  date: row.date || row.Date || '',
-                  type: (row.type || row.Type || '').toLowerCase() as 'income' | 'expense',
-                  category: row.category || row.Category || '',
-                  amount: parseFloat(row.amount || row.Amount || '0'),
-                  source: row.source || row.Source || '',
-                  description: row.description || row.Description || '',
-                  isPersonal: (row.personal || row.Personal || 'false').toLowerCase() === 'true'
-                }))
+                results.data.forEach((row: any) => {
+                  const date = row.Date || row.date || ''
+                  const personalDetails = row['Personal Details'] || ''
+                  const personalExpenses = parseFloat(row['Personal Expenses'] || '0')
+                  const incomeDetails = row['Income details'] || ''
+                  const incomeAmount = parseFloat(row['Income Amount'] || '0')
+                  const expensesDetails = row['Expenses details'] || ''
+                  const expensesAmount = parseFloat(row['Expenses Amount'] || '0')
+
+                  // Add income transaction if amount exists
+                  if (incomeAmount > 0) {
+                    transactions.push({
+                      date,
+                      type: 'income',
+                      category: 'Income',
+                      amount: incomeAmount,
+                      source: incomeDetails,
+                      description: incomeDetails,
+                      isPersonal: false
+                    })
+                  }
+
+                  // Add expense transaction if amount exists
+                  if (expensesAmount > 0) {
+                    transactions.push({
+                      date,
+                      type: 'expense',
+                      category: 'Expense',
+                      amount: expensesAmount,
+                      source: expensesDetails,
+                      description: expensesDetails,
+                      isPersonal: false
+                    })
+                  }
+
+                  // Add personal expense if amount exists
+                  if (personalExpenses > 0) {
+                    transactions.push({
+                      date,
+                      type: 'expense',
+                      category: 'Personal',
+                      amount: personalExpenses,
+                      source: personalDetails,
+                      description: personalDetails,
+                      isPersonal: true
+                    })
+                  }
+                })
                 resolve(transactions)
               },
               error: (error: any) => reject(error)
@@ -98,15 +137,54 @@ export default function Upload() {
             const worksheet = workbook.Sheets[sheetName]
             const jsonData = XLSX.utils.sheet_to_json(worksheet)
 
-            transactions = jsonData.map((row: any) => ({
-              date: row.date || row.Date || '',
-              type: (row.type || row.Type || '').toLowerCase() as 'income' | 'expense',
-              category: row.category || row.Category || '',
-              amount: parseFloat(row.amount || row.Amount || '0'),
-              source: row.source || row.Source || '',
-              description: row.description || row.Description || '',
-              isPersonal: (row.personal || row.Personal || 'false').toLowerCase() === 'true'
-            }))
+            jsonData.forEach((row: any) => {
+              const date = row.Date || row.date || ''
+              const personalDetails = row['Personal Details'] || ''
+              const personalExpenses = parseFloat(row['Personal Expenses'] || '0')
+              const incomeDetails = row['Income details'] || ''
+              const incomeAmount = parseFloat(row['Income Amount'] || '0')
+              const expensesDetails = row['Expenses details'] || ''
+              const expensesAmount = parseFloat(row['Expenses Amount'] || '0')
+
+              // Add income transaction if amount exists
+              if (incomeAmount > 0) {
+                transactions.push({
+                  date,
+                  type: 'income',
+                  category: 'Income',
+                  amount: incomeAmount,
+                  source: incomeDetails,
+                  description: incomeDetails,
+                  isPersonal: false
+                })
+              }
+
+              // Add expense transaction if amount exists
+              if (expensesAmount > 0) {
+                transactions.push({
+                  date,
+                  type: 'expense',
+                  category: 'Expense',
+                  amount: expensesAmount,
+                  source: expensesDetails,
+                  description: expensesDetails,
+                  isPersonal: false
+                })
+              }
+
+              // Add personal expense if amount exists
+              if (personalExpenses > 0) {
+                transactions.push({
+                  date,
+                  type: 'expense',
+                  category: 'Personal',
+                  amount: personalExpenses,
+                  source: personalDetails,
+                  description: personalDetails,
+                  isPersonal: true
+                })
+              }
+            })
             resolve(transactions)
           }
         } catch (error) {
