@@ -1,4 +1,4 @@
-import { Menu, Bell, Moon, Sun, Building2, ChevronDown } from 'lucide-react'
+import { Menu, Moon, Sun, Building2, ChevronDown } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import { useBranch } from '../contexts/BranchContext'
 import { useState, useRef, useEffect } from 'react'
@@ -61,12 +61,6 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             ) : (
               <Sun className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             )}
-          </button>
-
-          {/* Notifications */}
-          <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative">
-            <Bell className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
 
           {/* Branch Selector */}

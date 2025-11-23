@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, User, TrendingUp, Database, Upload, LogOut, Bell } from 'lucide-react'
+import { LayoutDashboard, User, TrendingUp, Database, Upload, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { cn } from '../lib/utils'
 
@@ -76,15 +76,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               </div>
             </div>
           </div>
-
-          {/* Notifications */}
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
-            <Bell className="w-5 h-5" />
-            <span className="font-medium">Notifications</span>
-            <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-              3
-            </span>
-          </button>
 
           {/* Logout */}
           <button
