@@ -23,7 +23,6 @@ export default function Database() {
   const [showFilters, setShowFilters] = useState(false)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!currentBranch) {
@@ -277,7 +276,7 @@ export default function Database() {
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => setEditingId(transaction.id)}
+                          onClick={() => toast('Edit feature coming soon!', { icon: '✏️' })}
                           className="p-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                           title="Edit"
                         >
