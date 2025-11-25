@@ -267,8 +267,10 @@ export default function Upload() {
     const formData = new FormData(form)
     
     // Convert date string to Excel serial number for consistency
-    const dateString = formData.get('date') as string
-    const jsDate = new Date(dateString)
+    const dateString = formData.get('date') as string // e.g., "2025-11-25"
+    // Parse as LOCAL time, not UTC, to avoid timezone issues
+    const [year, month, day] = dateString.split('-').map(Number)
+    const jsDate = new Date(year, month - 1, day) // month is 0-indexed in JS
     const excelDate = Math.floor((jsDate.getTime() / 86400000) + 25569)
     
     const transaction: Transaction = {
