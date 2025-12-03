@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useBranch } from '../contexts/BranchContext'
 import { db } from '../lib/firebase'
 import { collection, getDocs } from 'firebase/firestore'
+import { excelDateToLocal } from '../lib/utils'
 
 export default function Monthly() {
   const { currentBranch } = useBranch()
@@ -38,7 +39,7 @@ export default function Monthly() {
       .filter(t => {
         if (typeof t.date === 'number') {
           // Convert Excel date to JS date
-          const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+          const jsDate = excelDateToLocal(t.date)
           return jsDate.getMonth() === month && jsDate.getFullYear() === year
         }
         return false
@@ -268,7 +269,7 @@ export default function Monthly() {
                       <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td className="px-3 py-2 text-gray-900 dark:text-white">
                           {typeof t.date === 'number' 
-                            ? new Date((t.date - 25569) * 86400 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            ? excelDateToLocal(t.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
                             : t.date}
                         </td>
                         <td className="px-3 py-2">
@@ -354,7 +355,7 @@ export default function Monthly() {
                       <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td className="px-3 py-2 text-gray-900 dark:text-white">
                           {typeof t.date === 'number' 
-                            ? new Date((t.date - 25569) * 86400 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            ? excelDateToLocal(t.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
                             : t.date}
                         </td>
                         <td className="px-3 py-2">

@@ -4,6 +4,7 @@ import { Search, Filter, Download, Plus, Edit2, Trash2 } from 'lucide-react'
 import { db } from '../lib/firebase'
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
 import toast from 'react-hot-toast'
+import { excelDateToLocal } from '../lib/utils'
 
 interface Transaction {
   id: string
@@ -255,7 +256,7 @@ export default function Database() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {typeof transaction.date === 'number' 
-                        ? new Date((transaction.date - 25569) * 86400 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                        ? excelDateToLocal(transaction.date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
                         : transaction.date}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

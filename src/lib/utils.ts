@@ -54,3 +54,16 @@ export function debounce<T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait)
   }
 }
+
+/**
+ * Convert Excel serial date to JavaScript Date in local timezone.
+ * Excel serial dates are days since 1900-01-01 (with a bug where 1900 is treated as leap year).
+ * This function ensures the date is interpreted as local time, not UTC.
+ */
+export function excelDateToLocal(excelDate: number): Date {
+  // Excel epoch is 1900-01-01, but Excel incorrectly treats 1900 as a leap year
+  // So we need to subtract 25569 to get Unix timestamp in days, then convert to ms
+  const utcDate = new Date((excelDate - 25569) * 86400 * 1000)
+  // Adjust for timezone offset to get the correct local date
+  return new Date(utcDate.getTime() + utcDate.getTimezoneOffset() * 60 * 1000)
+}

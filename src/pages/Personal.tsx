@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useBranch } from '../contexts/BranchContext'
 import { db } from '../lib/firebase'
 import { collection, getDocs } from 'firebase/firestore'
+import { excelDateToLocal } from '../lib/utils'
 
 export default function Personal() {
   const { currentBranch } = useBranch()
@@ -35,7 +36,7 @@ export default function Personal() {
   const filteredTransactions = transactions
     .filter(t => {
       if (typeof t.date === 'number') {
-        const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+        const jsDate = excelDateToLocal(t.date)
         return jsDate.getMonth() === selectedMonth && jsDate.getFullYear() === selectedYear
       }
       return false
@@ -60,7 +61,7 @@ export default function Personal() {
     const dayTotal = filteredTransactions
       .filter(t => {
         if (typeof t.date === 'number') {
-          const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+          const jsDate = excelDateToLocal(t.date)
           return jsDate.getDate() === day
         }
         return false
@@ -213,7 +214,7 @@ export default function Personal() {
                   <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-3 py-3 text-gray-900 dark:text-white">
                       {typeof t.date === 'number' 
-                        ? new Date((t.date - 25569) * 86400 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        ? excelDateToLocal(t.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
                         : t.date}
                     </td>
                     <td className="px-3 py-3">

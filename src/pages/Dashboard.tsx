@@ -3,6 +3,7 @@ import { useBranch } from '../contexts/BranchContext'
 import { TrendingUp, TrendingDown, DollarSign, PiggyBank } from 'lucide-react'
 import { db } from '../lib/firebase'
 import { collection, getDocs } from 'firebase/firestore'
+import { excelDateToLocal } from '../lib/utils'
 
 export default function Dashboard() {
   const { currentBranch } = useBranch()
@@ -34,7 +35,7 @@ export default function Dashboard() {
   // Filter transactions by year1
   const year1Transactions = transactions.filter(t => {
     if (typeof t.date === 'number') {
-      const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+      const jsDate = excelDateToLocal(t.date)
       return jsDate.getFullYear() === year1
     }
     return false
@@ -43,7 +44,7 @@ export default function Dashboard() {
   // Filter transactions by year2
   const year2Transactions = transactions.filter(t => {
     if (typeof t.date === 'number') {
-      const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+      const jsDate = excelDateToLocal(t.date)
       return jsDate.getFullYear() === year2
     }
     return false
@@ -68,7 +69,7 @@ export default function Dashboard() {
   const year1MonthlyData = Array.from({ length: 12 }, (_, month) => {
     const monthTransactions = year1Transactions.filter(t => {
       if (typeof t.date === 'number') {
-        const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+        const jsDate = excelDateToLocal(t.date)
         return jsDate.getMonth() === month
       }
       return false
@@ -89,7 +90,7 @@ export default function Dashboard() {
   const year2MonthlyData = Array.from({ length: 12 }, (_, month) => {
     const monthTransactions = year2Transactions.filter(t => {
       if (typeof t.date === 'number') {
-        const jsDate = new Date((t.date - 25569) * 86400 * 1000)
+        const jsDate = excelDateToLocal(t.date)
         return jsDate.getMonth() === month
       }
       return false
