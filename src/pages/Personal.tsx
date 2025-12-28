@@ -3,12 +3,15 @@ import { useBranch } from '../contexts/BranchContext'
 import { db } from '../lib/firebase'
 import { collection, getDocs } from 'firebase/firestore'
 import { excelDateToLocal } from '../lib/utils'
+import { Download } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export default function Personal() {
   const { currentBranch } = useBranch()
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [transactions, setTransactions] = useState<any[]>([])
+  const [allTransactions, setAllTransactions] = useState<any[]>([])
 
   useEffect(() => {
     if (!currentBranch) return
@@ -20,9 +23,11 @@ export default function Personal() {
           id: doc.id,
           ...doc.data()
         }))
-        const filtered = data.filter((t: any) => 
-          t.branchId === currentBranch.id && t.isPersonal === true
-        )
+        // Store all transactions for export
+        const branchTransactions = data.filter((t: any) => t.branchId === currentBranch.id)
+        setAllTransactions(branchTransactions)
+        // Filter personal only for display
+        const filtered = branchTransactions.filter((t: any) => t.isPersonal === true)
         setTransactions(filtered)
       } catch (error) {
         console.error('Error fetching transactions:', error)
@@ -79,16 +84,67 @@ export default function Personal() {
 
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i)
 
+  const exportAllToCSV = () => {
+    if (allTransactions.length === 0) {
+      toast.error('No transactions to export')
+      return
+    }
+
+    const headers = ['ID', 'Date', 'Type', 'Category', 'Amount', 'Description', 'Source', 'Is Personal', 'Branch ID']
+    
+    const csvRows = [
+      headers.join(','),
+      ...allTransactions.map((t: any) => {
+        const dateStr = typeof t.date === 'number' 
+          ? excelDateToLocal(t.date).toISOString().split('T')[0]
+          : t.date
+        return [
+          t.id,
+          dateStr,
+          t.type,
+          t.category || '',
+          t.amount,
+          `"${(t.description || '').replace(/"/g, '""')}"`,
+          `"${(t.source || '').replace(/"/g, '""')}"`,
+          t.isPersonal ? 'true' : 'false',
+          t.branchId || ''
+        ].join(',')
+      })
+    ]
+
+    const csvContent = csvRows.join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${currentBranch?.name || 'all-transactions'}-full-export-${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    
+    toast.success(`Exported ${allTransactions.length} transactions to CSV`)
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-          Personal Expenses
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          {currentBranch?.displayName} - Track your personal spending
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+            Personal Expenses
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            {currentBranch?.displayName} - Track your personal spending
+          </p>
+        </div>
+        <button 
+          onClick={exportAllToCSV}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+        >
+          <Download className="w-4 h-4" />
+          <span>Export All Data</span>
+        </button>
       </div>
 
       {/* Month Filter */}
