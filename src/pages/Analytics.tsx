@@ -232,6 +232,64 @@ export default function Analytics() {
 
     expansionScore = Object.values(expansionFactors).reduce((sum, f) => sum + f.score, 0)
 
+    // Profit First Allocations (Mike Michalowicz)
+    const profitFirstTargets = {
+      profit: { target: 10, actual: income > 0 ? (grossProfit / income) * 100 : 0 },
+      ownerPay: { target: 40, actual: income > 0 ? (personalExpenses / income) * 100 : 0 },
+      opex: { target: 40, actual: income > 0 ? (businessExpenses / income) * 100 : 0 },
+      tax: { target: 15, actual: 0 } // We don't track taxes separately yet
+    }
+
+    // Best and Worst Month
+    const bestMonth = monthlyMetrics.length > 0 
+      ? monthlyMetrics.reduce((best, m) => m.grossProfit > best.grossProfit ? m : best, monthlyMetrics[0])
+      : null
+    const worstMonth = monthlyMetrics.length > 0
+      ? monthlyMetrics.reduce((worst, m) => m.grossProfit < worst.grossProfit ? m : worst, monthlyMetrics[0])
+      : null
+
+    // Break-Even Point (monthly)
+    const avgMonthlyRevenue = totalMonths > 0 ? income / totalMonths : 0
+    const avgMonthlyCOGS = totalMonths > 0 ? expenses / totalMonths : 0
+    const contributionMarginRatio = avgMonthlyRevenue > 0 ? (avgMonthlyRevenue - avgMonthlyCOGS) / avgMonthlyRevenue : 0
+    const breakEvenRevenue = contributionMarginRatio > 0 ? avgMonthlyCOGS / contributionMarginRatio : 0
+
+    // Expense Category Trends (compare first half vs second half of period)
+    const midPoint = Math.floor(monthlyMetrics.length / 2)
+    const firstHalfExpenses: Record<string, number> = {}
+    const secondHalfExpenses: Record<string, number> = {}
+    
+    filteredTransactions
+      .filter(t => t.type === 'expense')
+      .forEach(t => {
+        const txDate = new Date(t.date)
+        const txMonth = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`
+        const monthIndex = monthlyMetrics.findIndex(m => m.month === txMonth)
+        const cat = t.category || 'Uncategorized'
+        
+        if (monthIndex < midPoint) {
+          firstHalfExpenses[cat] = (firstHalfExpenses[cat] || 0) + t.amount
+        } else {
+          secondHalfExpenses[cat] = (secondHalfExpenses[cat] || 0) + t.amount
+        }
+      })
+
+    const categoryTrends = topCategories.map(([cat, total]) => {
+      const firstHalf = firstHalfExpenses[cat] || 0
+      const secondHalf = secondHalfExpenses[cat] || 0
+      const change = firstHalf > 0 ? ((secondHalf - firstHalf) / firstHalf) * 100 : 0
+      return { category: cat, total, firstHalf, secondHalf, change }
+    })
+
+    // Average Transaction Size
+    const incomeTransactions = filteredTransactions.filter(t => t.type === 'income')
+    const avgTransactionSize = incomeTransactions.length > 0 
+      ? income / incomeTransactions.length 
+      : 0
+
+    // Cash Runway (months of expenses covered by current profit)
+    const monthsOfRunway = avgMonthlyExpenses > 0 ? grossProfit / avgMonthlyExpenses : 0
+
     let expansionGrade: 'A' | 'B' | 'C' | 'D' | 'F' = 'F'
     let expansionStatus: 'Ready' | 'Almost Ready' | 'Not Yet' = 'Not Yet'
     if (expansionScore >= 85) {
@@ -271,7 +329,15 @@ export default function Analytics() {
       expansionStatus,
       expansionFactors,
       profitableMonths,
-      totalMonths
+      totalMonths,
+      // New Tier 2 metrics
+      profitFirstTargets,
+      bestMonth,
+      worstMonth,
+      breakEvenRevenue,
+      categoryTrends,
+      avgTransactionSize,
+      monthsOfRunway
     }
   }, [filteredTransactions])
 
@@ -710,6 +776,263 @@ export default function Analytics() {
             {metrics.expansionStatus === 'Not Yet' && '❌ Focus on stabilizing your current operations first. Work on profitability and margin consistency.'}
           </p>
         </div>
+      </div>
+
+      {/* Tier 2 Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Cash Runway */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className={`p-2 rounded-lg ${
+              metrics.monthsOfRunway >= 6 
+                ? 'bg-green-100 dark:bg-green-900/30' 
+                : metrics.monthsOfRunway >= 3
+                  ? 'bg-yellow-100 dark:bg-yellow-900/30'
+                  : 'bg-red-100 dark:bg-red-900/30'
+            }`}>
+              <Calendar className={`w-5 h-5 ${
+                metrics.monthsOfRunway >= 6 
+                  ? 'text-green-600 dark:text-green-400' 
+                  : metrics.monthsOfRunway >= 3
+                    ? 'text-yellow-600 dark:text-yellow-400'
+                    : 'text-red-600 dark:text-red-400'
+              }`} />
+            </div>
+            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+              metrics.monthsOfRunway >= 6 
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                : metrics.monthsOfRunway >= 3
+                  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+            }`}>
+              {metrics.monthsOfRunway >= 6 ? 'Safe' : metrics.monthsOfRunway >= 3 ? 'Caution' : 'Critical'}
+            </span>
+          </div>
+          <p className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
+            {metrics.monthsOfRunway.toFixed(1)} mo
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Cash Runway (Target: 6+ mo)</p>
+        </div>
+
+        {/* Average Transaction Size */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+          <p className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
+            {formatCurrency(metrics.avgTransactionSize)}
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Avg Transaction Size</p>
+        </div>
+
+        {/* Break-Even Revenue */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+              <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+          </div>
+          <p className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
+            {formatCurrency(metrics.breakEvenRevenue)}
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Break-Even Revenue/mo</p>
+        </div>
+
+        {/* Personal Draw % */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+              <Percent className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+              metrics.profitFirstTargets.ownerPay.actual <= 50 
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+            }`}>
+              {metrics.profitFirstTargets.ownerPay.actual <= 50 ? 'Healthy' : 'High'}
+            </span>
+          </div>
+          <p className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
+            {metrics.profitFirstTargets.ownerPay.actual.toFixed(1)}%
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Personal Draw (Target: ≤40%)</p>
+        </div>
+      </div>
+
+      {/* Best & Worst Month + Profit First */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Best & Worst Month */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Best & Worst Month</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Best Month */}
+            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-green-700 dark:text-green-400">Best Month</span>
+              </div>
+              {metrics.bestMonth ? (
+                <>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {new Date(metrics.bestMonth.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                  </p>
+                  <p className="text-sm text-green-600 dark:text-green-400">
+                    {formatCurrency(metrics.bestMonth.grossProfit)} profit
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {metrics.bestMonth.grossMargin.toFixed(1)}% margin
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">No data</p>
+              )}
+            </div>
+
+            {/* Worst Month */}
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingDown className="w-4 h-4 text-red-600" />
+                <span className="text-sm font-medium text-red-700 dark:text-red-400">Worst Month</span>
+              </div>
+              {metrics.worstMonth ? (
+                <>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {new Date(metrics.worstMonth.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                  </p>
+                  <p className="text-sm text-red-600 dark:text-red-400">
+                    {formatCurrency(metrics.worstMonth.grossProfit)} profit
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {metrics.worstMonth.grossMargin.toFixed(1)}% margin
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">No data</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Profit First Allocation */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Profit First Allocation</h2>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Mike Michalowicz Method</span>
+          </div>
+          <div className="space-y-4">
+            {/* Profit */}
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-600 dark:text-gray-400">Profit</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {metrics.profitFirstTargets.profit.actual.toFixed(1)}% 
+                  <span className="text-gray-500"> / {metrics.profitFirstTargets.profit.target}% target</span>
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full ${
+                    metrics.profitFirstTargets.profit.actual >= metrics.profitFirstTargets.profit.target 
+                      ? 'bg-green-500' : 'bg-yellow-500'
+                  }`}
+                  style={{ width: `${Math.min(metrics.profitFirstTargets.profit.actual * 2, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Owner Pay */}
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-600 dark:text-gray-400">Owner Pay</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {metrics.profitFirstTargets.ownerPay.actual.toFixed(1)}% 
+                  <span className="text-gray-500"> / {metrics.profitFirstTargets.ownerPay.target}% target</span>
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full ${
+                    metrics.profitFirstTargets.ownerPay.actual <= metrics.profitFirstTargets.ownerPay.target 
+                      ? 'bg-green-500' : 'bg-yellow-500'
+                  }`}
+                  style={{ width: `${Math.min(metrics.profitFirstTargets.ownerPay.actual, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Operating Expenses */}
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-600 dark:text-gray-400">Operating Expenses</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {metrics.profitFirstTargets.opex.actual.toFixed(1)}% 
+                  <span className="text-gray-500"> / {metrics.profitFirstTargets.opex.target}% target</span>
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full ${
+                    metrics.profitFirstTargets.opex.actual <= metrics.profitFirstTargets.opex.target 
+                      ? 'bg-green-500' : 'bg-red-500'
+                  }`}
+                  style={{ width: `${Math.min(metrics.profitFirstTargets.opex.actual, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Expense Category Trends */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Expense Category Trends</h2>
+          <span className="text-xs text-gray-500 dark:text-gray-400">First half vs Second half comparison</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                <th className="pb-3 font-medium">Category</th>
+                <th className="pb-3 font-medium text-right">Total</th>
+                <th className="pb-3 font-medium text-right">First Half</th>
+                <th className="pb-3 font-medium text-right">Second Half</th>
+                <th className="pb-3 font-medium text-right">Trend</th>
+              </tr>
+            </thead>
+            <tbody>
+              {metrics.categoryTrends.map((trend, index) => (
+                <tr key={index} className="border-b border-gray-100 dark:border-gray-700/50">
+                  <td className="py-3 font-medium text-gray-900 dark:text-white">{trend.category}</td>
+                  <td className="py-3 text-right text-gray-600 dark:text-gray-400">{formatCurrency(trend.total)}</td>
+                  <td className="py-3 text-right text-gray-600 dark:text-gray-400">{formatCurrency(trend.firstHalf)}</td>
+                  <td className="py-3 text-right text-gray-600 dark:text-gray-400">{formatCurrency(trend.secondHalf)}</td>
+                  <td className="py-3 text-right">
+                    <span className={`inline-flex items-center gap-1 text-sm font-medium ${
+                      trend.change > 10 
+                        ? 'text-red-600 dark:text-red-400' 
+                        : trend.change < -10
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-gray-600 dark:text-gray-400'
+                    }`}>
+                      {trend.change > 0 ? (
+                        <ArrowUpRight className="w-4 h-4" />
+                      ) : trend.change < 0 ? (
+                        <ArrowDownRight className="w-4 h-4" />
+                      ) : null}
+                      {trend.change > 0 ? '+' : ''}{trend.change.toFixed(0)}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+          🔴 Red = Expense growing (bad) | 🟢 Green = Expense shrinking (good)
+        </p>
       </div>
 
       {/* Revenue & COGS Chart */}
