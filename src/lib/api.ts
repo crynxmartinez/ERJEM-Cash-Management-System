@@ -43,6 +43,20 @@ export const api = {
     return res.json()
   },
 
+  // Import CSV with branch IDs from CSV
+  async importCSVWithBranches(transactions: any[], userId: string) {
+    const res = await fetch(`${API_BASE}/import-csv-branches`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transactions, userId })
+    })
+    if (!res.ok) {
+      const error = await res.json()
+      throw new Error(error.error || 'Failed to import CSV')
+    }
+    return res.json()
+  },
+
   // Branches
   async getBranches() {
     const res = await fetch(`${API_BASE}/branches`)

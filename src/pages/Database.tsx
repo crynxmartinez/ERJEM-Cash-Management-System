@@ -138,10 +138,11 @@ export default function Database() {
             amount: parseFloat(row.Amount || row.amount || '0'),
             description: row.Description || row.description || '',
             source: row.Source || row.source || '',
-            isPersonal: row['Is Personal'] === 'true' || row.isPersonal === 'true'
+            isPersonal: row['Is Personal'] === 'true' || row.isPersonal === 'true',
+            branchId: row['Branch ID'] || row.branchId || currentBranch.id
           }))
 
-          const result = await api.importCSV(transactions, currentUser.id, currentBranch.id)
+          const result = await api.importCSVWithBranches(transactions, currentUser.id)
           toast.success(`Imported ${result.imported} transactions to Prisma!`, { id: uploadToast })
           
           // Reset file input
