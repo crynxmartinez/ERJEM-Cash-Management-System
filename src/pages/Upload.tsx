@@ -3,11 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useBranch } from '../contexts/BranchContext'
 import { useAuth } from '../contexts/AuthContext'
 import { Upload as UploadIcon, FileSpreadsheet, Plus, History, CheckCircle } from 'lucide-react'
-import { db } from '../lib/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
+import { api } from '../lib/api'
 
 interface Transaction {
   date: string | number // Can be string from form or number (Excel serial) from upload
@@ -205,7 +204,7 @@ export default function Upload() {
     })
   }
 
-  const uploadToFirebase = async () => {
+  const uploadToPrisma = async () => {
     if (!selectedFile || !currentUser || !currentBranch) {
       toast.error('Missing required information')
       return
@@ -224,28 +223,18 @@ export default function Upload() {
         return
       }
 
-      // Save transactions directly to Firestore (skip Storage upload to avoid CORS)
-      const batch = transactions.map(async (transaction) => {
-        await addDoc(collection(db, 'transactions'), {
-          ...transaction,
-          branchId: currentBranch.id,
-          userId: currentUser.uid,
-          uploadedAt: serverTimestamp(),
-          fileName: selectedFile.name
-        })
-      })
-
-      await Promise.all(batch)
+      // Save transactions to Prisma via API
+      const result = await api.importCSV(transactions, currentUser.uid, currentBranch.id)
 
       // Add to recent uploads
       const uploadRecord = {
         fileName: selectedFile.name,
-        recordCount: transactions.length,
+        recordCount: result.imported,
         uploadedAt: new Date().toISOString()
       }
       setRecentUploads([uploadRecord, ...recentUploads.slice(0, 4)])
 
-      toast.success(`Successfully uploaded ${transactions.length} transactions!`, { id: uploadToast })
+      toast.success(`Successfully uploaded ${result.imported} transactions!`, { id: uploadToast })
       setSelectedFile(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (error: any) {
@@ -266,19 +255,14 @@ export default function Upload() {
     const form = e.currentTarget
     const formData = new FormData(form)
     
-    // Convert date string to Excel serial number for consistency
-    const dateString = formData.get('date') as string // e.g., "2025-11-25"
-    // Parse as LOCAL time, not UTC, to avoid timezone issues
-    const [year, month, day] = dateString.split('-').map(Number)
-    const jsDate = new Date(year, month - 1, day) // month is 0-indexed in JS
-    const excelDate = Math.floor((jsDate.getTime() / 86400000) + 25569)
+    const dateString = formData.get('date') as string
     
-    const transaction: Transaction = {
-      date: excelDate, // Store as Excel serial number
+    const transaction = {
+      date: dateString,
       type: formData.get('type') as 'income' | 'expense',
-      category: '', // Not used anymore
+      category: '',
       amount: parseFloat(formData.get('amount') as string),
-      source: '', // Not used anymore
+      source: '',
       description: formData.get('description') as string,
       isPersonal: formData.get('isPersonal') === 'on'
     }
@@ -286,11 +270,10 @@ export default function Upload() {
     const addToast = toast.loading('Adding transaction...')
 
     try {
-      await addDoc(collection(db, 'transactions'), {
+      await api.createTransaction({
         ...transaction,
         branchId: currentBranch.id,
-        userId: currentUser.uid,
-        createdAt: serverTimestamp()
+        userId: currentUser.uid
       })
 
       toast.success('Transaction added successfully!', { id: addToast })
@@ -439,7 +422,7 @@ export default function Upload() {
                 Selected: {selectedFile.name}
               </p>
               <button
-                onClick={uploadToFirebase}
+                onClick={uploadToPrisma}
                 disabled={uploading}
                 className="mt-2 w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
               >

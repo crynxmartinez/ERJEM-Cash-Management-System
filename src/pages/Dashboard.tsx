@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useBranch } from '../contexts/BranchContext'
 import { TrendingUp, TrendingDown, DollarSign, PiggyBank } from 'lucide-react'
-import { db } from '../lib/firebase'
-import { collection, getDocs } from 'firebase/firestore'
-import { excelDateToLocal } from '../lib/utils'
+import { api } from '../lib/api'
 
 export default function Dashboard() {
   const { currentBranch } = useBranch()
@@ -17,13 +15,8 @@ export default function Dashboard() {
 
     const fetchTransactions = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'transactions'))
-        const data = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-        const filtered = data.filter((t: any) => t.branchId === currentBranch.id)
-        setTransactions(filtered)
+        const data = await api.getTransactions(currentBranch.id)
+        setTransactions(data)
       } catch (error) {
         console.error('Error fetching transactions:', error)
       }
@@ -34,20 +27,14 @@ export default function Dashboard() {
 
   // Filter transactions by year1
   const year1Transactions = transactions.filter(t => {
-    if (typeof t.date === 'number') {
-      const jsDate = excelDateToLocal(t.date)
-      return jsDate.getFullYear() === year1
-    }
-    return false
+    const jsDate = new Date(t.date)
+    return jsDate.getFullYear() === year1
   })
 
   // Filter transactions by year2
   const year2Transactions = transactions.filter(t => {
-    if (typeof t.date === 'number') {
-      const jsDate = excelDateToLocal(t.date)
-      return jsDate.getFullYear() === year2
-    }
-    return false
+    const jsDate = new Date(t.date)
+    return jsDate.getFullYear() === year2
   })
 
   const totalIncome = year1Transactions
@@ -68,11 +55,8 @@ export default function Dashboard() {
   // Calculate monthly data for year1
   const year1MonthlyData = Array.from({ length: 12 }, (_, month) => {
     const monthTransactions = year1Transactions.filter(t => {
-      if (typeof t.date === 'number') {
-        const jsDate = excelDateToLocal(t.date)
-        return jsDate.getMonth() === month
-      }
-      return false
+      const jsDate = new Date(t.date)
+      return jsDate.getMonth() === month
     })
     
     const income = monthTransactions
@@ -89,11 +73,8 @@ export default function Dashboard() {
   // Calculate monthly data for year2
   const year2MonthlyData = Array.from({ length: 12 }, (_, month) => {
     const monthTransactions = year2Transactions.filter(t => {
-      if (typeof t.date === 'number') {
-        const jsDate = excelDateToLocal(t.date)
-        return jsDate.getMonth() === month
-      }
-      return false
+      const jsDate = new Date(t.date)
+      return jsDate.getMonth() === month
     })
     
     const income = monthTransactions

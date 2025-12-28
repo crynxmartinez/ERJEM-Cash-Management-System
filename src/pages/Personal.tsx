@@ -1,8 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { useBranch } from '../contexts/BranchContext'
-import { db } from '../lib/firebase'
-import { collection, getDocs } from 'firebase/firestore'
-import { excelDateToLocal } from '../lib/utils'
 import { Download, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
@@ -24,16 +21,11 @@ export default function Personal() {
 
     const fetchTransactions = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'transactions'))
-        const data = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
+        const data = await api.getTransactions(currentBranch.id)
         // Store all transactions for export
-        const branchTransactions = data.filter((t: any) => t.branchId === currentBranch.id)
-        setAllTransactions(branchTransactions)
+        setAllTransactions(data)
         // Filter personal only for display
-        const filtered = branchTransactions.filter((t: any) => t.isPersonal === true)
+        const filtered = data.filter((t: any) => t.isPersonal === true)
         setTransactions(filtered)
       } catch (error) {
         console.error('Error fetching transactions:', error)
@@ -46,17 +38,11 @@ export default function Personal() {
   // Filter transactions by selected month/year
   const filteredTransactions = transactions
     .filter(t => {
-      if (typeof t.date === 'number') {
-        const jsDate = excelDateToLocal(t.date)
-        return jsDate.getMonth() === selectedMonth && jsDate.getFullYear() === selectedYear
-      }
-      return false
+      const jsDate = new Date(t.date)
+      return jsDate.getMonth() === selectedMonth && jsDate.getFullYear() === selectedYear
     })
     .sort((a, b) => {
-      if (typeof a.date === 'number' && typeof b.date === 'number') {
-        return b.date - a.date // Latest first
-      }
-      return 0
+      return new Date(b.date).getTime() - new Date(a.date).getTime() // Latest first
     })
 
   // Total expenses (all time)
@@ -71,11 +57,8 @@ export default function Personal() {
     const day = i + 1
     const dayTotal = filteredTransactions
       .filter(t => {
-        if (typeof t.date === 'number') {
-          const jsDate = excelDateToLocal(t.date)
-          return jsDate.getDate() === day
-        }
-        return false
+        const jsDate = new Date(t.date)
+        return jsDate.getDate() === day
       })
       .reduce((sum, t) => sum + (t.amount || 0), 0)
     return { day, amount: dayTotal }
@@ -101,9 +84,7 @@ export default function Personal() {
     const csvRows = [
       headers.join(','),
       ...allTransactions.map((t: any) => {
-        const dateStr = typeof t.date === 'number' 
-          ? excelDateToLocal(t.date).toISOString().split('T')[0]
-          : t.date
+        const dateStr = new Date(t.date).toISOString().split('T')[0]
         return [
           t.id,
           dateStr,
@@ -333,9 +314,7 @@ export default function Personal() {
                 filteredTransactions.map((t: any) => (
                   <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-3 py-3 text-gray-900 dark:text-white">
-                      {typeof t.date === 'number' 
-                        ? excelDateToLocal(t.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
-                        : t.date}
+                      {new Date(t.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
                     </td>
                     <td className="px-3 py-3">
                       <span className={`px-2 py-1 text-xs rounded-full ${

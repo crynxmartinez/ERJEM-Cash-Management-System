@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useBranch } from '../contexts/BranchContext'
 import { Search, Filter, Download, Plus, Edit2, Trash2, Upload } from 'lucide-react'
-import { db } from '../lib/firebase'
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
 import toast from 'react-hot-toast'
-import { excelDateToLocal } from '../lib/utils'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../lib/api'
 import Papa from 'papaparse'
@@ -40,31 +37,9 @@ export default function Database() {
 
     const fetchTransactions = async () => {
       setLoading(true)
-      console.log('Fetching transactions for branch:', currentBranch.id)
       try {
-        // Fetch ALL transactions first to debug
-        const querySnapshot = await getDocs(collection(db, 'transactions'))
-        console.log('Total transactions in database:', querySnapshot.size)
-        
-        // Filter by branchId in memory
-        const allData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Transaction[]
-        
-        console.log('All transaction data:', allData)
-        
-        const filtered = allData.filter(t => t.branchId === currentBranch.id)
-        console.log('Filtered for branch:', filtered)
-        
-        // Sort by date - latest first
-        const sorted = filtered.sort((a, b) => {
-          const dateA = typeof a.date === 'number' ? a.date : 0
-          const dateB = typeof b.date === 'number' ? b.date : 0
-          return dateB - dateA // Descending order (latest first)
-        })
-        
-        setTransactions(sorted)
+        const data = await api.getTransactions(currentBranch.id)
+        setTransactions(data)
       } catch (error: any) {
         console.error('Error fetching transactions:', error)
         toast.error('Failed to load transactions: ' + error.message)
@@ -81,7 +56,7 @@ export default function Database() {
 
     const deleteToast = toast.loading('Deleting transaction...')
     try {
-      await deleteDoc(doc(db, 'transactions', deleteConfirm))
+      await api.deleteTransaction(deleteConfirm)
       setTransactions(transactions.filter(t => t.id !== deleteConfirm))
       toast.success('Transaction deleted successfully!', { id: deleteToast })
       setDeleteConfirm(null)
@@ -112,9 +87,7 @@ export default function Database() {
     const csvRows = [
       headers.join(','),
       ...transactions.map(t => {
-        const dateStr = typeof t.date === 'number' 
-          ? excelDateToLocal(t.date).toISOString().split('T')[0]
-          : t.date
+        const dateStr = new Date(t.date).toISOString().split('T')[0]
         return [
           t.id,
           dateStr,
@@ -363,9 +336,7 @@ export default function Database() {
                       <input type="checkbox" className="rounded" />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {typeof transaction.date === 'number' 
-                        ? excelDateToLocal(transaction.date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
-                        : transaction.date}
+                      {new Date(transaction.date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${

@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useBranch } from '../contexts/BranchContext'
-import { db } from '../lib/firebase'
-import { collection, getDocs } from 'firebase/firestore'
-import { excelDateToLocal } from '../lib/utils'
+import { api } from '../lib/api'
 
 export default function Monthly() {
   const { currentBranch } = useBranch()
@@ -18,13 +16,8 @@ export default function Monthly() {
 
     const fetchTransactions = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'transactions'))
-        const data = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-        const filtered = data.filter((t: any) => t.branchId === currentBranch.id)
-        setTransactions(filtered)
+        const data = await api.getTransactions(currentBranch.id)
+        setTransactions(data)
       } catch (error) {
         console.error('Error fetching transactions:', error)
       }
@@ -37,19 +30,11 @@ export default function Monthly() {
   const filterByMonthYear = (month: number, year: number) => {
     return transactions
       .filter(t => {
-        if (typeof t.date === 'number') {
-          // Convert Excel date to JS date
-          const jsDate = excelDateToLocal(t.date)
-          return jsDate.getMonth() === month && jsDate.getFullYear() === year
-        }
-        return false
+        const jsDate = new Date(t.date)
+        return jsDate.getMonth() === month && jsDate.getFullYear() === year
       })
       .sort((a, b) => {
-        // Sort by date descending (latest first)
-        if (typeof a.date === 'number' && typeof b.date === 'number') {
-          return b.date - a.date
-        }
-        return 0
+        return new Date(b.date).getTime() - new Date(a.date).getTime()
       })
   }
 
@@ -268,9 +253,7 @@ export default function Monthly() {
                     month1Transactions.map((t: any) => (
                       <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td className="px-3 py-2 text-gray-900 dark:text-white">
-                          {typeof t.date === 'number' 
-                            ? excelDateToLocal(t.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
-                            : t.date}
+                          {new Date(t.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
                         </td>
                         <td className="px-3 py-2">
                           <span className={`px-2 py-1 text-xs rounded-full ${
@@ -354,9 +337,7 @@ export default function Monthly() {
                     month2Transactions.map((t: any) => (
                       <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td className="px-3 py-2 text-gray-900 dark:text-white">
-                          {typeof t.date === 'number' 
-                            ? excelDateToLocal(t.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
-                            : t.date}
+                          {new Date(t.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
                         </td>
                         <td className="px-3 py-2">
                           <span className={`px-2 py-1 text-xs rounded-full ${
