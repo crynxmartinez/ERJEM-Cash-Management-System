@@ -6,7 +6,7 @@ const prisma = new PrismaClient()
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Check if DATABASE_URL is set
   if (!process.env.DATABASE_URL) {
-    return res.status(500).json({ error: 'DATABASE_URL not configured' })
+    return res.status(500).json({ error: 'DATABASE_URL not configured', hint: 'Set DATABASE_URL in Vercel Environment Variables' })
   }
 
   try {
