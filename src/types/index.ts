@@ -1,20 +1,20 @@
-import { Timestamp } from 'firebase/firestore'
-
 export interface User {
   id: string
   email: string
   displayName: string
-  createdAt: Timestamp
+  createdAt: string | Date
 }
 
 export interface Branch {
   id: string
   name: string
   displayName: string
-  createdAt: Timestamp
+  createdAt: string | Date
   createdBy: string
   isActive: boolean
-  settings: {
+  currency?: string
+  fiscalYearStart?: number
+  settings?: {
     currency: string
     fiscalYearStart: number
   }
@@ -24,17 +24,17 @@ export interface Transaction {
   id: string
   userId: string
   branchId: string
-  branchName: string
-  date: Timestamp
+  branchName?: string
+  date: string | Date
   type: 'income' | 'expense'
-  category: string
+  category?: string
   amount: number
-  description: string
-  source: string
+  description?: string
+  source?: string
   isPersonal: boolean
-  entryMethod: 'bulk' | 'manual' | 'daily-upload'
-  createdAt: Timestamp
-  updatedAt: Timestamp
+  entryMethod?: 'bulk' | 'manual' | 'daily-upload'
+  createdAt: string | Date
+  updatedAt: string | Date
 }
 
 export interface UserBranch {
@@ -42,7 +42,7 @@ export interface UserBranch {
   userId: string
   branchId: string
   role: 'admin' | 'editor' | 'viewer'
-  createdAt: Timestamp
+  createdAt: string | Date
 }
 
 export interface Category {
