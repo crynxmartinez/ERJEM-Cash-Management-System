@@ -1,0 +1,11 @@
+{
+  "name": "firebase-export",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "export": "node export.js"
+  },
+  "dependencies": {
+    "firebase": "^10.7.1"
+  }
+}
