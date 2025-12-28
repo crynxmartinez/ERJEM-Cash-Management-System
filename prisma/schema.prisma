@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  displayName String
+  createdAt   DateTime @default(now())
+  
+  transactions Transaction[]
+  branches     Branch[]      @relation("CreatedBranches")
+  userBranches UserBranch[]
+}
+
+model Branch {
+  id          String   @id
+  name        String
+  displayName String
+  createdAt   DateTime @default(now())
+  createdBy   String
+  isActive    Boolean  @default(true)
+  currency    String   @default("PHP")
+  fiscalYearStart Int  @default(1)
+  
+  creator      User          @relation("CreatedBranches", fields: [createdBy], references: [id])
+  transactions Transaction[]
+  userBranches UserBranch[]
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  branchId    String
+  branchName  String?
+  date        DateTime
+  type        String   // 'income' | 'expense'
+  category    String?
+  amount      Float
+  description String?
+  source      String?
+  isPersonal  Boolean  @default(false)
+  entryMethod String?  // 'bulk' | 'manual' | 'daily-upload'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user   User   @relation(fields: [userId], references: [id])
+  branch Branch @relation(fields: [branchId], references: [id])
+}
+
+model UserBranch {
+  id        String   @id @default(cuid())
+  userId    String
+  branchId  String
+  role      String   @default("viewer") // 'admin' | 'editor' | 'viewer'
+  createdAt DateTime @default(now())
+  
+  user   User   @relation(fields: [userId], references: [id])
+  branch Branch @relation(fields: [branchId], references: [id])
+  
+  @@unique([userId, branchId])
+}

@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useBranch } from '../contexts/BranchContext'
-import { Search, Filter, Download, Plus, Edit2, Trash2 } from 'lucide-react'
+import { Search, Filter, Download, Plus, Edit2, Trash2, Upload } from 'lucide-react'
 import { db } from '../lib/firebase'
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
 import toast from 'react-hot-toast'
 import { excelDateToLocal } from '../lib/utils'
+import { useAuth } from '../contexts/AuthContext'
+import { api } from '../lib/api'
+import Papa from 'papaparse'
 
 interface Transaction {
   id: string
@@ -20,11 +23,14 @@ interface Transaction {
 
 export default function Database() {
   const { currentBranch } = useBranch()
+  const { currentUser } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!currentBranch) {
@@ -137,6 +143,51 @@ export default function Database() {
     toast.success(`Exported ${transactions.length} transactions to CSV`)
   }
 
+  const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !currentUser || !currentBranch) {
+      toast.error('Please select a file and ensure you are logged in')
+      return
+    }
+
+    setUploading(true)
+    const uploadToast = toast.loading('Importing CSV to Prisma database...')
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const transactions = results.data.map((row: any) => ({
+            date: row.Date || row.date || new Date().toISOString(),
+            type: (row.Type || row.type || 'expense').toLowerCase(),
+            category: row.Category || row.category || '',
+            amount: parseFloat(row.Amount || row.amount || '0'),
+            description: row.Description || row.description || '',
+            source: row.Source || row.source || '',
+            isPersonal: row['Is Personal'] === 'true' || row.isPersonal === 'true'
+          }))
+
+          const result = await api.importCSV(transactions, currentUser.uid, currentBranch.id)
+          toast.success(`Imported ${result.imported} transactions to Prisma!`, { id: uploadToast })
+          
+          // Reset file input
+          if (fileInputRef.current) fileInputRef.current.value = ''
+        } catch (error: any) {
+          console.error('Import error:', error)
+          toast.error(error.message || 'Failed to import CSV', { id: uploadToast })
+        } finally {
+          setUploading(false)
+        }
+      },
+      error: (error) => {
+        console.error('Parse error:', error)
+        toast.error('Failed to parse CSV file', { id: uploadToast })
+        setUploading(false)
+      }
+    })
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -154,6 +205,18 @@ export default function Database() {
             <Plus className="w-4 h-4" />
             <span>Add Transaction</span>
           </button>
+          <label className={`flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors cursor-pointer ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <Upload className="w-4 h-4" />
+            <span>{uploading ? 'Importing...' : 'Import CSV'}</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleCSVUpload}
+              disabled={uploading}
+              className="hidden"
+            />
+          </label>
           <button 
             onClick={exportToCSV}
             className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors"

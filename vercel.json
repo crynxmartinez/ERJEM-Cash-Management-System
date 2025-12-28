@@ -1,5 +1,10 @@
 {
+  "buildCommand": "npx prisma generate && npm run build",
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
