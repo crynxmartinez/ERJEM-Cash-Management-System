@@ -4,6 +4,11 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Check if DATABASE_URL is set
+  if (!process.env.DATABASE_URL) {
+    return res.status(500).json({ error: 'DATABASE_URL not configured' })
+  }
+
   try {
     if (req.method === 'GET') {
       const branches = await prisma.branch.findMany({
@@ -35,6 +40,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' })
   } catch (error: any) {
     console.error('API Error:', error)
-    return res.status(500).json({ error: error.message })
+    return res.status(500).json({ 
+      error: error.message,
+      code: error.code,
+      meta: error.meta
+    })
   }
 }
