@@ -391,9 +391,16 @@ export default function Analytics() {
               <YAxis 
                 yAxisId="left"
                 stroke="#9CA3AF" 
-                fontSize={12}
+                fontSize={11}
                 tickLine={false}
-                tickFormatter={(value) => `₱${(value / 1000).toFixed(0)}k`}
+                width={70}
+                tickFormatter={(value) => {
+                  if (value >= 1000000) return `₱${(value / 1000000).toFixed(1)}M`
+                  if (value >= 1000) return `₱${(value / 1000).toFixed(0)}K`
+                  if (value <= -1000000) return `-₱${(Math.abs(value) / 1000000).toFixed(1)}M`
+                  if (value <= -1000) return `-₱${(Math.abs(value) / 1000).toFixed(0)}K`
+                  return `₱${value.toFixed(0)}`
+                }}
               />
               <YAxis 
                 yAxisId="right"
