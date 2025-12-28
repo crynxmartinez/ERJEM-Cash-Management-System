@@ -36,13 +36,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
+    // Helper to parse date as Philippine time (UTC+8)
+    const parseDateAsPH = (dateInput: any): Date => {
+      if (!dateInput) return new Date()
+      
+      // If it's an Excel serial number
+      if (typeof dateInput === 'number') {
+        const utcDate = new Date((dateInput - 25569) * 86400 * 1000)
+        return utcDate
+      }
+      
+      // If it's a string date like "2024-12-28" or "12/28/2024"
+      const dateStr = String(dateInput)
+      
+      // Append Philippine timezone if no timezone specified
+      if (!dateStr.includes('T') && !dateStr.includes('+')) {
+        const parsed = new Date(dateStr + 'T12:00:00+08:00')
+        if (!isNaN(parsed.getTime())) return parsed
+      }
+      
+      return new Date(dateInput)
+    }
+
     // Import transactions
     const result = await prisma.transaction.createMany({
       data: transactions.map((t: any) => ({
         userId: userId,
         branchId: t.branchId,
         branchName: t.branchId,
-        date: new Date(t.date),
+        date: parseDateAsPH(t.date),
         type: (t.type || 'expense').toLowerCase(),
         category: t.category || null,
         amount: parseFloat(t.amount) || 0,
