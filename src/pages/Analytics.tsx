@@ -369,13 +369,13 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Trend Line Chart */}
+      {/* Revenue & COGS Chart */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
         <div className="flex items-center gap-2 mb-6">
           <LineChartIcon className="w-5 h-5 text-primary-600" />
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Performance Trend</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Revenue vs COGS</h2>
         </div>
-        <div className="h-80">
+        <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={metrics.monthlyMetrics.map(m => ({
               ...m,
@@ -389,7 +389,6 @@ export default function Analytics() {
                 tickLine={false}
               />
               <YAxis 
-                yAxisId="left"
                 stroke="#9CA3AF" 
                 fontSize={11}
                 tickLine={false}
@@ -397,19 +396,8 @@ export default function Analytics() {
                 tickFormatter={(value) => {
                   if (value >= 1000000) return `₱${(value / 1000000).toFixed(1)}M`
                   if (value >= 1000) return `₱${(value / 1000).toFixed(0)}K`
-                  if (value <= -1000000) return `-₱${(Math.abs(value) / 1000000).toFixed(1)}M`
-                  if (value <= -1000) return `-₱${(Math.abs(value) / 1000).toFixed(0)}K`
                   return `₱${value.toFixed(0)}`
                 }}
-              />
-              <YAxis 
-                yAxisId="right"
-                orientation="right"
-                stroke="#F59E0B" 
-                fontSize={12}
-                tickLine={false}
-                tickFormatter={(value) => `${value}%`}
-                domain={[0, 100]}
               />
               <Tooltip 
                 contentStyle={{ 
@@ -418,67 +406,98 @@ export default function Analytics() {
                   borderRadius: '8px',
                   color: '#F9FAFB'
                 }}
-                formatter={(value: number, name: string) => {
-                  if (name === 'Gross Margin %') return [`${value.toFixed(1)}%`, name]
-                  return [formatCurrency(value), name]
-                }}
+                formatter={(value: number) => [formatCurrency(value), '']}
                 labelStyle={{ color: '#9CA3AF' }}
               />
               <Legend />
               <Bar 
-                yAxisId="left"
                 dataKey="income" 
                 name="Revenue"
                 fill="#10B981"
-                opacity={0.8}
                 radius={[4, 4, 0, 0]}
               />
               <Bar 
-                yAxisId="left"
                 dataKey="expenses" 
                 name="COGS"
                 fill="#EF4444"
-                opacity={0.8}
                 radius={[4, 4, 0, 0]}
               />
               <Line 
-                yAxisId="left"
                 type="monotone" 
                 dataKey="grossProfit" 
                 name="Gross Profit"
                 stroke="#3B82F6" 
                 strokeWidth={3}
                 dot={{ fill: '#3B82F6', strokeWidth: 2 }}
-                activeDot={{ r: 6 }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Gross Margin % Chart */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Percent className="w-5 h-5 text-yellow-500" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Gross Margin % Trend</h2>
+        </div>
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={metrics.monthlyMetrics.map(m => ({
+              ...m,
+              monthLabel: new Date(m.month + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+            }))}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+              <XAxis 
+                dataKey="monthLabel" 
+                stroke="#9CA3AF" 
+                fontSize={12}
+                tickLine={false}
+              />
+              <YAxis 
+                stroke="#F59E0B" 
+                fontSize={11}
+                tickLine={false}
+                width={50}
+                tickFormatter={(value) => `${Math.round(value)}%`}
+                domain={[0, 100]}
+                ticks={[0, 25, 50, 75, 100]}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1F2937', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  color: '#F9FAFB'
+                }}
+                formatter={(value: number) => [`${value.toFixed(1)}%`, 'Gross Margin']}
+                labelStyle={{ color: '#9CA3AF' }}
               />
               <Line 
-                yAxisId="right"
                 type="monotone" 
                 dataKey="grossMargin" 
                 name="Gross Margin %"
                 stroke="#F59E0B" 
                 strokeWidth={3}
+                dot={{ fill: '#F59E0B', strokeWidth: 2, r: 5 }}
+                activeDot={{ r: 7 }}
+              />
+              {/* Target line at 80% */}
+              <Line 
+                type="monotone" 
+                dataKey={() => 80} 
+                name="Target (80%)"
+                stroke="#10B981" 
+                strokeWidth={2}
                 strokeDasharray="5 5"
-                dot={{ fill: '#F59E0B', strokeWidth: 2 }}
-                activeDot={{ r: 6 }}
+                dot={false}
               />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
-        <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-green-500 rounded"></span> Revenue (bars)
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-red-500 rounded"></span> COGS (bars)
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-blue-500 rounded"></span> Gross Profit (line)
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-yellow-500 rounded"></span> Gross Margin % (dashed line, right axis)
-          </span>
-        </div>
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          Green dashed line = 80% target (healthy margin)
+        </p>
       </div>
 
       {/* Tabbed Monthly Tables */}
