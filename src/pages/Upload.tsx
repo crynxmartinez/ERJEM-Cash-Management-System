@@ -224,7 +224,7 @@ export default function Upload() {
       }
 
       // Save transactions to Prisma via API
-      const result = await api.importCSV(transactions, currentUser.uid, currentBranch.id)
+      const result = await api.importCSV(transactions, currentUser.id, currentBranch.id)
 
       // Add to recent uploads
       const uploadRecord = {
@@ -273,7 +273,7 @@ export default function Upload() {
       await api.createTransaction({
         ...transaction,
         branchId: currentBranch.id,
-        userId: currentUser.uid
+        userId: currentUser.id
       })
 
       toast.success('Transaction added successfully!', { id: addToast })

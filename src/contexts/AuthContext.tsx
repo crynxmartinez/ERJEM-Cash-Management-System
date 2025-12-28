@@ -1,19 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import {
-  User as FirebaseUser,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  updateProfile,
-} from 'firebase/auth'
-import { auth } from '../lib/firebase'
 import { User } from '../types'
 import toast from 'react-hot-toast'
-import { api } from '../lib/api'
+
+const AUTH_STORAGE_KEY = 'erjem_auth_user'
 
 interface AuthContextType {
-  currentUser: FirebaseUser | null
+  currentUser: User | null
   userProfile: User | null
   loading: boolean
   register: (email: string, password: string, displayName: string) => Promise<void>
@@ -36,21 +28,25 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null)
-  const [userProfile, setUserProfile] = useState<User | null>(null)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   async function register(email: string, password: string, displayName: string) {
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, email, password)
-      await updateProfile(user, { displayName })
-
-      // Create user profile in Prisma
-      await api.createOrUpdateUser({
-        id: user.uid,
-        email: user.email!,
-        displayName,
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, displayName })
       })
+      
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to register')
+      }
+      
+      const user = await res.json()
+      setCurrentUser(user)
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user))
       toast.success('Account created successfully!')
     } catch (error: any) {
       toast.error(error.message || 'Failed to create account')
@@ -60,7 +56,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   async function login(email: string, password: string) {
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to login')
+      }
+      
+      const user = await res.json()
+      setCurrentUser(user)
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user))
       toast.success('Logged in successfully!')
     } catch (error: any) {
       toast.error(error.message || 'Failed to log in')
@@ -70,7 +79,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   async function logout() {
     try {
-      await signOut(auth)
+      setCurrentUser(null)
+      localStorage.removeItem(AUTH_STORAGE_KEY)
       toast.success('Logged out successfully!')
     } catch (error: any) {
       toast.error(error.message || 'Failed to log out')
@@ -79,41 +89,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user)
-
-      if (user) {
-        // Sync user to Prisma and fetch profile
-        try {
-          const userProfile = await api.createOrUpdateUser({
-            id: user.uid,
-            email: user.email!,
-            displayName: user.displayName || user.email!.split('@')[0],
-          })
-          setUserProfile(userProfile)
-        } catch (error) {
-          console.error('Error syncing user to Prisma:', error)
-          // Fallback to basic user info
-          setUserProfile({
-            id: user.uid,
-            email: user.email!,
-            displayName: user.displayName || user.email!.split('@')[0],
-            createdAt: new Date() as any,
-          })
-        }
-      } else {
-        setUserProfile(null)
+    // Check for stored user on mount
+    const storedUser = localStorage.getItem(AUTH_STORAGE_KEY)
+    if (storedUser) {
+      try {
+        setCurrentUser(JSON.parse(storedUser))
+      } catch {
+        localStorage.removeItem(AUTH_STORAGE_KEY)
       }
-
-      setLoading(false)
-    })
-
-    return unsubscribe
+    }
+    setLoading(false)
   }, [])
 
   const value: AuthContextType = {
     currentUser,
-    userProfile,
+    userProfile: currentUser,
     loading,
     register,
     login,

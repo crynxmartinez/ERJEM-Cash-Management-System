@@ -138,7 +138,7 @@ export default function Personal() {
             isPersonal: row['Is Personal'] === 'true' || row.isPersonal === 'true'
           }))
 
-          const result = await api.importCSV(transactions, currentUser.uid, currentBranch.id)
+          const result = await api.importCSV(transactions, currentUser.id, currentBranch.id)
           toast.success(`Imported ${result.imported} transactions to Prisma!`, { id: uploadToast })
           
           if (fileInputRef.current) fileInputRef.current.value = ''
