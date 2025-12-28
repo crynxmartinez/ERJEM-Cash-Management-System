@@ -12,10 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     try {
       const { PrismaClient } = await import('@prisma/client')
-      // @ts-ignore - Prisma 7 uses datasourceUrl
-      const prisma = new PrismaClient({
-        datasourceUrl: process.env.DATABASE_URL
-      })
+      const prisma = new PrismaClient()
       await prisma.$connect()
       prismaStatus = 'connected'
       await prisma.$disconnect()
