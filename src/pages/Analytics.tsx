@@ -146,7 +146,8 @@ export default function Analytics() {
     filteredTransactions
       .filter(t => t.type === 'expense')
       .forEach(t => {
-        const cat = t.category || 'Uncategorized'
+        // Merge Uncategorized into Expense
+        const cat = t.category && t.category !== 'Uncategorized' ? t.category : 'Expense'
         categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + t.amount
       })
 
@@ -265,7 +266,8 @@ export default function Analytics() {
         const txDate = new Date(t.date)
         const txMonth = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`
         const monthIndex = monthlyMetrics.findIndex(m => m.month === txMonth)
-        const cat = t.category || 'Uncategorized'
+        // Merge Uncategorized into Expense
+        const cat = t.category && t.category !== 'Uncategorized' ? t.category : 'Expense'
         
         if (monthIndex < midPoint) {
           firstHalfExpenses[cat] = (firstHalfExpenses[cat] || 0) + t.amount
