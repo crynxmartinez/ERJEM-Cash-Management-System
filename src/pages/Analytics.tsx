@@ -366,12 +366,18 @@ export default function Analytics() {
     setExportingPDF(true)
     
     try {
-      // Capture the analytics page as an image
+      // Capture the full analytics page as an image
       const canvas = await html2canvas(analyticsRef.current, {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#111827' // dark background
+        backgroundColor: '#111827', // dark background
+        windowWidth: analyticsRef.current.scrollWidth,
+        windowHeight: analyticsRef.current.scrollHeight,
+        width: analyticsRef.current.scrollWidth,
+        height: analyticsRef.current.scrollHeight,
+        scrollX: 0,
+        scrollY: 0
       })
       
       const imgData = canvas.toDataURL('image/png')
@@ -382,19 +388,50 @@ export default function Analytics() {
       const pdfWidth = 210 // A4 width in mm
       const pdfHeight = (imgHeight * pdfWidth) / imgWidth
       
+      // Create PDF with multiple pages if needed
       const doc = new jsPDF({
-        orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+        orientation: 'portrait',
         unit: 'mm',
-        format: [pdfWidth, Math.min(pdfHeight + 20, 500)] // Cap height to avoid huge PDFs
+        format: 'a4'
       })
       
-      // Add header
+      const pageHeight = 297 // A4 height in mm
+      const headerHeight = 15
+      const contentHeight = pageHeight - headerHeight
+      
+      // Add header on first page
       doc.setFontSize(16)
       doc.setTextColor(59, 130, 246)
       doc.text(`${currentBranch?.displayName || 'Branch'} - Analytics Report`, pdfWidth / 2, 10, { align: 'center' })
       
-      // Add the captured image
-      doc.addImage(imgData, 'PNG', 0, 15, pdfWidth, pdfHeight)
+      // Calculate how many pages we need
+      let position = 0
+      let pageNum = 0
+      
+      while (position < pdfHeight) {
+        if (pageNum > 0) {
+          doc.addPage()
+        }
+        
+        const yOffset = pageNum === 0 ? headerHeight : 0
+        const availableHeight = pageNum === 0 ? contentHeight : pageHeight
+        
+        // Add portion of the image
+        doc.addImage(
+          imgData, 
+          'PNG', 
+          0, 
+          yOffset - position, 
+          pdfWidth, 
+          pdfHeight
+        )
+        
+        position += availableHeight
+        pageNum++
+        
+        // Safety limit
+        if (pageNum > 20) break
+      }
       
       // Save
       doc.save(`analytics-report-${currentBranch?.name || 'branch'}-${new Date().toISOString().split('T')[0]}.pdf`)
