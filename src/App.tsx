@@ -11,6 +11,7 @@ import Personal from './pages/Personal'
 import Monthly from './pages/Monthly'
 import Database from './pages/Database'
 import Upload from './pages/Upload'
+import Analytics from './pages/Analytics'
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
                 <Route path="monthly" element={<Monthly />} />
                 <Route path="database" element={<Database />} />
                 <Route path="upload" element={<Upload />} />
+                <Route path="analytics" element={<Analytics />} />
               </Route>
             </Routes>
           </Router>

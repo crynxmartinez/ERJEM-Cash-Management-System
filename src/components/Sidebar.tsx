@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, User, TrendingUp, Database, Upload, LogOut } from 'lucide-react'
+import { LayoutDashboard, User, TrendingUp, Database, Upload, BarChart3, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { cn } from '../lib/utils'
 
@@ -14,6 +14,7 @@ const menuItems = [
   { icon: TrendingUp, label: 'Monthly', path: '/monthly' },
   { icon: Database, label: 'Database', path: '/database' },
   { icon: Upload, label: 'Upload', path: '/upload' },
+  { icon: BarChart3, label: 'Analytics', path: '/analytics' },
 ]
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
