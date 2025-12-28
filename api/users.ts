@@ -31,6 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         create: {
           id: data.id,
           email: data.email,
+          password: data.password || 'default',
           displayName: data.displayName
         }
       })

@@ -26,6 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       create: {
         id: userId,
         email: `${userId}@temp.com`,
+        password: 'imported',
         displayName: 'Imported User'
       }
     })
