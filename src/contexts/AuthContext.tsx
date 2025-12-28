@@ -7,10 +7,10 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from 'firebase/auth'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
-import { auth, db } from '../lib/firebase'
+import { auth } from '../lib/firebase'
 import { User } from '../types'
 import toast from 'react-hot-toast'
+import { api } from '../lib/api'
 
 interface AuthContextType {
   currentUser: FirebaseUser | null
@@ -45,15 +45,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const { user } = await createUserWithEmailAndPassword(auth, email, password)
       await updateProfile(user, { displayName })
 
-      // Create user profile in Firestore
-      const userDoc: User = {
+      // Create user profile in Prisma
+      await api.createOrUpdateUser({
         id: user.uid,
         email: user.email!,
         displayName,
-        createdAt: new Date() as any,
-      }
-
-      await setDoc(doc(db, 'users', user.uid), userDoc)
+      })
       toast.success('Account created successfully!')
     } catch (error: any) {
       toast.error(error.message || 'Failed to create account')
@@ -86,10 +83,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setCurrentUser(user)
 
       if (user) {
-        // Fetch user profile from Firestore
-        const userDoc = await getDoc(doc(db, 'users', user.uid))
-        if (userDoc.exists()) {
-          setUserProfile(userDoc.data() as User)
+        // Sync user to Prisma and fetch profile
+        try {
+          const userProfile = await api.createOrUpdateUser({
+            id: user.uid,
+            email: user.email!,
+            displayName: user.displayName || user.email!.split('@')[0],
+          })
+          setUserProfile(userProfile)
+        } catch (error) {
+          console.error('Error syncing user to Prisma:', error)
+          // Fallback to basic user info
+          setUserProfile({
+            id: user.uid,
+            email: user.email!,
+            displayName: user.displayName || user.email!.split('@')[0],
+            createdAt: new Date() as any,
+          })
         }
       } else {
         setUserProfile(null)

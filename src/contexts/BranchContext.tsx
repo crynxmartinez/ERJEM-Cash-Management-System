@@ -1,9 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { collection, getDocs, doc, setDoc } from 'firebase/firestore'
-import { db } from '../lib/firebase'
 import { Branch } from '../types'
 import { useAuth } from './AuthContext'
 import toast from 'react-hot-toast'
+import { api } from '../lib/api'
 
 interface BranchContextType {
   currentBranch: Branch | null
@@ -37,43 +36,40 @@ export function BranchProvider({ children }: BranchProviderProps) {
   const initializeDefaultBranches = async () => {
     if (!currentUser) return
 
-    const branchesRef = collection(db, 'branches')
-    const snapshot = await getDocs(branchesRef)
-
-    if (snapshot.empty) {
-      // Create default branches
-      const defaultBranches = [
-        {
-          id: 'erjem-glass',
-          name: 'ERJEM Glass',
-          displayName: 'ERJEM Glass',
-          createdAt: new Date(),
-          createdBy: currentUser.uid,
-          isActive: true,
-          settings: {
+    try {
+      const branches = await api.getBranches()
+      
+      if (branches.length === 0) {
+        // Create default branches in Prisma
+        const defaultBranches = [
+          {
+            id: 'erjem-glass',
+            name: 'ERJEM Glass',
+            displayName: 'ERJEM Glass',
+            createdBy: currentUser.uid,
+            isActive: true,
             currency: 'PHP',
             fiscalYearStart: 1,
           },
-        },
-        {
-          id: 'erjem-machine-shop',
-          name: 'ERJEM Machine Shop',
-          displayName: 'ERJEM Machine Shop',
-          createdAt: new Date(),
-          createdBy: currentUser.uid,
-          isActive: true,
-          settings: {
+          {
+            id: 'erjem-machine-shop',
+            name: 'ERJEM Machine Shop',
+            displayName: 'ERJEM Machine Shop',
+            createdBy: currentUser.uid,
+            isActive: true,
             currency: 'PHP',
             fiscalYearStart: 1,
           },
-        },
-      ]
+        ]
 
-      for (const branch of defaultBranches) {
-        await setDoc(doc(db, 'branches', branch.id), branch)
+        for (const branch of defaultBranches) {
+          await api.createBranch(branch)
+        }
+
+        toast.success('Default branches created!')
       }
-
-      toast.success('Default branches created!')
+    } catch (error) {
+      console.error('Error initializing branches:', error)
     }
   }
 
@@ -87,18 +83,14 @@ export function BranchProvider({ children }: BranchProviderProps) {
       // Initialize default branches if needed
       await initializeDefaultBranches()
 
-      // Get all branches directly (simplified - no userBranches needed)
-      const branchesRef = collection(db, 'branches')
-      const branchesSnapshot = await getDocs(branchesRef)
-      const branches = branchesSnapshot.docs
-        .map((doc) => ({ ...doc.data(), id: doc.id } as Branch))
-        .filter((branch) => branch.isActive)
+      // Get all branches from Prisma
+      const branches = await api.getBranches()
 
       setAvailableBranches(branches)
 
       // Set current branch from localStorage or first available
       const savedBranchId = localStorage.getItem('currentBranchId')
-      const savedBranch = branches.find((b) => b.id === savedBranchId)
+      const savedBranch = branches.find((b: Branch) => b.id === savedBranchId)
 
       if (savedBranch) {
         setCurrentBranch(savedBranch)
