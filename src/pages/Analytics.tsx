@@ -12,8 +12,15 @@ import {
   PieChart,
   ArrowUpRight,
   ArrowDownRight,
-  LineChart as LineChartIcon
+  LineChart as LineChartIcon,
+  Download,
+  Target,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import {
   Line,
   XAxis,
@@ -154,6 +161,93 @@ export default function Analytics() {
     
     const businessExpenses = expenses - personalExpenses
 
+    // Expansion Readiness Metrics
+    const profitableMonths = monthlyMetrics.filter(m => m.grossProfit > 0).length
+    const totalMonths = monthlyMetrics.length
+    const profitConsistency = totalMonths > 0 ? (profitableMonths / totalMonths) * 100 : 0
+    
+    const avgMonthlyExpenses = totalMonths > 0 ? expenses / totalMonths : 0
+    const cashRunway = avgMonthlyExpenses > 0 ? grossProfit / avgMonthlyExpenses : 0
+    
+    const lowestMargin = monthlyMetrics.length > 0 
+      ? Math.min(...monthlyMetrics.map(m => m.grossMargin))
+      : 0
+    
+    const avgGrowthRates: number[] = []
+    for (let i = 1; i < monthlyMetrics.length; i++) {
+      const prev = monthlyMetrics[i - 1].income
+      const curr = monthlyMetrics[i].income
+      if (prev > 0) {
+        avgGrowthRates.push(((curr - prev) / prev) * 100)
+      }
+    }
+    const avgRevenueGrowth = avgGrowthRates.length > 0 
+      ? avgGrowthRates.reduce((a, b) => a + b, 0) / avgGrowthRates.length 
+      : 0
+
+    // Calculate expansion score (0-100)
+    let expansionScore = 0
+    const expansionFactors = {
+      profitConsistency: { score: 0, max: 25, status: 'poor' as 'good' | 'okay' | 'poor' },
+      grossMargin: { score: 0, max: 25, status: 'poor' as 'good' | 'okay' | 'poor' },
+      revenueGrowth: { score: 0, max: 25, status: 'poor' as 'good' | 'okay' | 'poor' },
+      marginStability: { score: 0, max: 25, status: 'poor' as 'good' | 'okay' | 'poor' }
+    }
+
+    // Profit Consistency (25 pts) - 80%+ months profitable = full score
+    if (profitConsistency >= 80) {
+      expansionFactors.profitConsistency = { score: 25, max: 25, status: 'good' }
+    } else if (profitConsistency >= 60) {
+      expansionFactors.profitConsistency = { score: 15, max: 25, status: 'okay' }
+    } else {
+      expansionFactors.profitConsistency = { score: 5, max: 25, status: 'poor' }
+    }
+
+    // Gross Margin (25 pts) - 50%+ = full score
+    if (grossMargin >= 50) {
+      expansionFactors.grossMargin = { score: 25, max: 25, status: 'good' }
+    } else if (grossMargin >= 30) {
+      expansionFactors.grossMargin = { score: 15, max: 25, status: 'okay' }
+    } else {
+      expansionFactors.grossMargin = { score: 5, max: 25, status: 'poor' }
+    }
+
+    // Revenue Growth (25 pts) - 5%+ monthly = full score
+    if (avgRevenueGrowth >= 5) {
+      expansionFactors.revenueGrowth = { score: 25, max: 25, status: 'good' }
+    } else if (avgRevenueGrowth >= 0) {
+      expansionFactors.revenueGrowth = { score: 15, max: 25, status: 'okay' }
+    } else {
+      expansionFactors.revenueGrowth = { score: 5, max: 25, status: 'poor' }
+    }
+
+    // Margin Stability (25 pts) - lowest margin never below 30%
+    if (lowestMargin >= 30) {
+      expansionFactors.marginStability = { score: 25, max: 25, status: 'good' }
+    } else if (lowestMargin >= 10) {
+      expansionFactors.marginStability = { score: 15, max: 25, status: 'okay' }
+    } else {
+      expansionFactors.marginStability = { score: 5, max: 25, status: 'poor' }
+    }
+
+    expansionScore = Object.values(expansionFactors).reduce((sum, f) => sum + f.score, 0)
+
+    let expansionGrade: 'A' | 'B' | 'C' | 'D' | 'F' = 'F'
+    let expansionStatus: 'Ready' | 'Almost Ready' | 'Not Yet' = 'Not Yet'
+    if (expansionScore >= 85) {
+      expansionGrade = 'A'
+      expansionStatus = 'Ready'
+    } else if (expansionScore >= 70) {
+      expansionGrade = 'B'
+      expansionStatus = 'Almost Ready'
+    } else if (expansionScore >= 55) {
+      expansionGrade = 'C'
+      expansionStatus = 'Almost Ready'
+    } else if (expansionScore >= 40) {
+      expansionGrade = 'D'
+      expansionStatus = 'Not Yet'
+    }
+
     return {
       income,
       expenses,
@@ -166,7 +260,18 @@ export default function Analytics() {
       topCategories,
       personalExpenses,
       businessExpenses,
-      transactionCount: filteredTransactions.length
+      transactionCount: filteredTransactions.length,
+      // Expansion metrics
+      profitConsistency,
+      cashRunway,
+      lowestMargin,
+      avgRevenueGrowth,
+      expansionScore,
+      expansionGrade,
+      expansionStatus,
+      expansionFactors,
+      profitableMonths,
+      totalMonths
     }
   }, [filteredTransactions])
 
@@ -181,6 +286,89 @@ export default function Analytics() {
 
   const formatPercent = (value: number) => {
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
+  }
+
+  const generatePDF = () => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    
+    // Header
+    doc.setFontSize(20)
+    doc.setTextColor(59, 130, 246)
+    doc.text('Analytics Report', pageWidth / 2, 20, { align: 'center' })
+    
+    doc.setFontSize(12)
+    doc.setTextColor(100)
+    doc.text(`${currentBranch?.displayName || 'Branch'}`, pageWidth / 2, 28, { align: 'center' })
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, 35, { align: 'center' })
+    
+    // Summary Section
+    doc.setFontSize(14)
+    doc.setTextColor(0)
+    doc.text('Summary', 14, 50)
+    
+    const summaryData = [
+      ['Total Revenue', formatCurrency(metrics.income)],
+      ['Total Expenses (COGS)', formatCurrency(metrics.expenses)],
+      ['Gross Profit', formatCurrency(metrics.grossProfit)],
+      ['Gross Margin', `${metrics.grossMargin.toFixed(1)}%`],
+      ['Expansion Score', `${metrics.expansionScore}/100 (${metrics.expansionGrade})`]
+    ]
+    
+    autoTable(doc, {
+      startY: 55,
+      head: [['Metric', 'Value']],
+      body: summaryData,
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246] }
+    })
+    
+    // Monthly Performance
+    const finalY1 = (doc as any).lastAutoTable.finalY || 100
+    doc.text('Monthly Performance', 14, finalY1 + 15)
+    
+    const monthlyData = metrics.monthlyMetrics.map(m => [
+      new Date(m.month + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+      formatCurrency(m.income),
+      formatCurrency(m.expenses),
+      formatCurrency(m.grossProfit),
+      `${m.grossMargin.toFixed(1)}%`
+    ])
+    
+    autoTable(doc, {
+      startY: finalY1 + 20,
+      head: [['Month', 'Revenue', 'COGS', 'Gross Profit', 'Margin %']],
+      body: monthlyData,
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246] }
+    })
+    
+    // Expansion Readiness
+    const finalY2 = (doc as any).lastAutoTable.finalY || 150
+    if (finalY2 > 240) {
+      doc.addPage()
+      doc.text('Expansion Readiness', 14, 20)
+    } else {
+      doc.text('Expansion Readiness', 14, finalY2 + 15)
+    }
+    
+    const expansionData = [
+      ['Profit Consistency', `${metrics.profitConsistency.toFixed(0)}%`, metrics.expansionFactors.profitConsistency.status],
+      ['Gross Margin', `${metrics.grossMargin.toFixed(1)}%`, metrics.expansionFactors.grossMargin.status],
+      ['Revenue Growth', `${metrics.avgRevenueGrowth.toFixed(1)}%/mo`, metrics.expansionFactors.revenueGrowth.status],
+      ['Margin Stability', `${metrics.lowestMargin.toFixed(1)}% lowest`, metrics.expansionFactors.marginStability.status]
+    ]
+    
+    autoTable(doc, {
+      startY: finalY2 > 240 ? 25 : finalY2 + 20,
+      head: [['Factor', 'Value', 'Status']],
+      body: expansionData,
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246] }
+    })
+    
+    // Save
+    doc.save(`analytics-report-${currentBranch?.name || 'branch'}-${new Date().toISOString().split('T')[0]}.pdf`)
   }
 
   if (loading) {
@@ -204,8 +392,20 @@ export default function Analytics() {
           </p>
         </div>
 
-        {/* Date Range Filter */}
+        {/* Actions */}
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={generatePDF}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Download PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Date Range Filter */}
+      <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setDateRange('3months')}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -246,7 +446,6 @@ export default function Analytics() {
           >
             Custom
           </button>
-        </div>
       </div>
 
       {/* Custom Date Range */}
@@ -366,6 +565,150 @@ export default function Analytics() {
             {metrics.grossMargin.toFixed(1)}%
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400">Gross Margin (Target: 80%+)</p>
+        </div>
+      </div>
+
+      {/* Expansion Readiness Score */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Target className="w-5 h-5 text-primary-600" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Expansion Readiness</h2>
+          </div>
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-lg ${
+            metrics.expansionStatus === 'Ready' 
+              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+              : metrics.expansionStatus === 'Almost Ready'
+                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+          }`}>
+            {metrics.expansionStatus === 'Ready' && <CheckCircle className="w-5 h-5" />}
+            {metrics.expansionStatus === 'Almost Ready' && <AlertCircle className="w-5 h-5" />}
+            {metrics.expansionStatus === 'Not Yet' && <XCircle className="w-5 h-5" />}
+            {metrics.expansionStatus}
+          </div>
+        </div>
+
+        {/* Score Display */}
+        <div className="flex items-center gap-6 mb-6">
+          <div className="text-center">
+            <div className={`text-5xl font-bold ${
+              metrics.expansionScore >= 70 ? 'text-green-600' : metrics.expansionScore >= 40 ? 'text-yellow-600' : 'text-red-600'
+            }`}>
+              {metrics.expansionGrade}
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Grade</p>
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Overall Score</span>
+              <span className="text-sm font-bold text-gray-900 dark:text-white">{metrics.expansionScore}/100</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
+              <div 
+                className={`h-4 rounded-full transition-all ${
+                  metrics.expansionScore >= 70 ? 'bg-green-500' : metrics.expansionScore >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${metrics.expansionScore}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Factor Breakdown */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Profit Consistency */}
+          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Profit Consistency</span>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                metrics.expansionFactors.profitConsistency.status === 'good' 
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : metrics.expansionFactors.profitConsistency.status === 'okay'
+                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
+                {metrics.expansionFactors.profitConsistency.status}
+              </span>
+            </div>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{metrics.profitConsistency.toFixed(0)}%</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{metrics.profitableMonths}/{metrics.totalMonths} months profitable (target: 80%+)</p>
+          </div>
+
+          {/* Gross Margin */}
+          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Average Gross Margin</span>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                metrics.expansionFactors.grossMargin.status === 'good' 
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : metrics.expansionFactors.grossMargin.status === 'okay'
+                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
+                {metrics.expansionFactors.grossMargin.status}
+              </span>
+            </div>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{metrics.grossMargin.toFixed(1)}%</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Target: 50%+</p>
+          </div>
+
+          {/* Revenue Growth */}
+          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Avg Revenue Growth</span>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                metrics.expansionFactors.revenueGrowth.status === 'good' 
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : metrics.expansionFactors.revenueGrowth.status === 'okay'
+                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
+                {metrics.expansionFactors.revenueGrowth.status}
+              </span>
+            </div>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{metrics.avgRevenueGrowth.toFixed(1)}%/mo</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Target: 5%+ monthly growth</p>
+          </div>
+
+          {/* Margin Stability */}
+          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Margin Stability</span>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                metrics.expansionFactors.marginStability.status === 'good' 
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : metrics.expansionFactors.marginStability.status === 'okay'
+                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
+                {metrics.expansionFactors.marginStability.status}
+              </span>
+            </div>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{metrics.lowestMargin.toFixed(1)}%</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Lowest margin (target: never below 30%)</p>
+          </div>
+        </div>
+
+        {/* Recommendation */}
+        <div className={`mt-6 p-4 rounded-lg ${
+          metrics.expansionStatus === 'Ready' 
+            ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+            : metrics.expansionStatus === 'Almost Ready'
+              ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
+              : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+        }`}>
+          <p className={`text-sm font-medium ${
+            metrics.expansionStatus === 'Ready' 
+              ? 'text-green-800 dark:text-green-300'
+              : metrics.expansionStatus === 'Almost Ready'
+                ? 'text-yellow-800 dark:text-yellow-300'
+                : 'text-red-800 dark:text-red-300'
+          }`}>
+            {metrics.expansionStatus === 'Ready' && '✅ Your business shows strong fundamentals. You may be ready to consider expansion!'}
+            {metrics.expansionStatus === 'Almost Ready' && '⚠️ You\'re getting close! Focus on improving the factors marked as "okay" or "poor" before expanding.'}
+            {metrics.expansionStatus === 'Not Yet' && '❌ Focus on stabilizing your current operations first. Work on profitability and margin consistency.'}
+          </p>
         </div>
       </div>
 

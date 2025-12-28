@@ -21,6 +21,8 @@
     "dotenv": "^17.2.3",
     "firebase": "^10.7.1",
     "framer-motion": "^10.16.16",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.294.0",
     "papaparse": "^5.4.1",
     "prisma": "^5.22.0",
