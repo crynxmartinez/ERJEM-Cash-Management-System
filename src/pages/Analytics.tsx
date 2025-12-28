@@ -11,18 +11,31 @@ import {
   BarChart3,
   PieChart,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  LineChart as LineChartIcon
 } from 'lucide-react'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts'
 
 type DateRange = '3months' | '6months' | '1year' | 'custom'
+type TableTab = 'revenue' | 'profit' | 'cogs'
 
 export default function Analytics() {
-    const { currentBranch } = useBranch()
+  const { currentBranch } = useBranch()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [dateRange, setDateRange] = useState<DateRange>('6months')
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
+  const [tableTab, setTableTab] = useState<TableTab>('revenue')
 
   useEffect(() => {
     async function fetchTransactions() {
@@ -355,57 +368,287 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Monthly Performance Table */}
+      {/* Trend Line Chart */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <LineChartIcon className="w-5 h-5 text-primary-600" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Performance Trend</h2>
+        </div>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={metrics.monthlyMetrics.map(m => ({
+              ...m,
+              monthLabel: new Date(m.month + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+            }))}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+              <XAxis 
+                dataKey="monthLabel" 
+                stroke="#9CA3AF" 
+                fontSize={12}
+                tickLine={false}
+              />
+              <YAxis 
+                stroke="#9CA3AF" 
+                fontSize={12}
+                tickLine={false}
+                tickFormatter={(value) => `₱${(value / 1000).toFixed(0)}k`}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1F2937', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  color: '#F9FAFB'
+                }}
+                formatter={(value: number) => [formatCurrency(value), '']}
+                labelStyle={{ color: '#9CA3AF' }}
+              />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="income" 
+                name="Revenue"
+                stroke="#10B981" 
+                strokeWidth={2}
+                dot={{ fill: '#10B981', strokeWidth: 2 }}
+                activeDot={{ r: 6 }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="expenses" 
+                name="COGS"
+                stroke="#EF4444" 
+                strokeWidth={2}
+                dot={{ fill: '#EF4444', strokeWidth: 2 }}
+                activeDot={{ r: 6 }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="grossProfit" 
+                name="Gross Profit"
+                stroke="#3B82F6" 
+                strokeWidth={2}
+                dot={{ fill: '#3B82F6', strokeWidth: 2 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Tabbed Monthly Tables */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-primary-600" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Monthly Performance</h2>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-primary-600" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Monthly Breakdown</h2>
+            </div>
+            <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+              <button
+                onClick={() => setTableTab('revenue')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  tableTab === 'revenue'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                }`}
+              >
+                Revenue
+              </button>
+              <button
+                onClick={() => setTableTab('profit')}
+                className={`px-4 py-2 text-sm font-medium transition-colors border-l border-gray-200 dark:border-gray-600 ${
+                  tableTab === 'profit'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                }`}
+              >
+                Gross Profit & Margin
+              </button>
+              <button
+                onClick={() => setTableTab('cogs')}
+                className={`px-4 py-2 text-sm font-medium transition-colors border-l border-gray-200 dark:border-gray-600 ${
+                  tableTab === 'cogs'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                }`}
+              >
+                COGS (Expenses)
+              </button>
+            </div>
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700/50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Month</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Revenue</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Expenses</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gross Profit</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gross Margin %</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {metrics.monthlyMetrics.map((m) => (
-                <tr key={m.month} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    {new Date(m.month + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}
+          {tableTab === 'revenue' && (
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Month</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Revenue</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">vs Prev Month</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cumulative</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {metrics.monthlyMetrics.map((m, idx) => {
+                  const prevRevenue = idx > 0 ? metrics.monthlyMetrics[idx - 1].income : 0
+                  const change = prevRevenue > 0 ? ((m.income - prevRevenue) / prevRevenue) * 100 : 0
+                  const cumulative = metrics.monthlyMetrics.slice(0, idx + 1).reduce((sum, x) => sum + x.income, 0)
+                  return (
+                    <tr key={m.month} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        {new Date(m.month + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 dark:text-green-400 font-medium">
+                        {formatCurrency(m.income)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        {idx > 0 ? (
+                          <span className={`flex items-center justify-end gap-1 ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {change >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                            {Math.abs(change).toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-400">
+                        {formatCurrency(cumulative)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+              <tfoot className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">Total</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-green-600 dark:text-green-400">
+                    {formatCurrency(metrics.income)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 dark:text-green-400">
-                    {formatCurrency(m.income)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600 dark:text-red-400">
-                    {formatCurrency(m.expenses)}
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
-                    m.grossProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                  }`}>
-                    {formatCurrency(m.grossProfit)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      m.grossMargin >= 80 
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                        : m.grossMargin >= 50 
-                          ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                  <td className="px-6 py-4"></td>
+                  <td className="px-6 py-4"></td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
+
+          {tableTab === 'profit' && (
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Month</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gross Profit</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gross Margin %</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {metrics.monthlyMetrics.map((m) => (
+                  <tr key={m.month} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      {new Date(m.month + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
+                      m.grossProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                     }`}>
+                      {formatCurrency(m.grossProfit)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900 dark:text-white">
                       {m.grossMargin.toFixed(1)}%
-                    </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        m.grossMargin >= 80 
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                          : m.grossMargin >= 50 
+                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                        {m.grossMargin >= 80 ? 'Healthy' : m.grossMargin >= 50 ? 'Okay' : 'Low'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">Average</td>
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-bold ${
+                    metrics.grossProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                  }`}>
+                    {formatCurrency(metrics.grossProfit)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-gray-900 dark:text-white">
+                    {metrics.grossMargin.toFixed(1)}%
+                  </td>
+                  <td className="px-6 py-4"></td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
+
+          {tableTab === 'cogs' && (
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Month</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">COGS (Expenses)</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">vs Prev Month</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">% of Revenue</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {metrics.monthlyMetrics.map((m, idx) => {
+                  const prevExpenses = idx > 0 ? metrics.monthlyMetrics[idx - 1].expenses : 0
+                  const change = prevExpenses > 0 ? ((m.expenses - prevExpenses) / prevExpenses) * 100 : 0
+                  const percentOfRevenue = m.income > 0 ? (m.expenses / m.income) * 100 : 0
+                  return (
+                    <tr key={m.month} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        {new Date(m.month + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'short' })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600 dark:text-red-400 font-medium">
+                        {formatCurrency(m.expenses)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        {idx > 0 ? (
+                          <span className={`flex items-center justify-end gap-1 ${change <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {change <= 0 ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+                            {Math.abs(change).toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          percentOfRevenue <= 20 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                            : percentOfRevenue <= 50 
+                              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                          {percentOfRevenue.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+              <tfoot className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">Total</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-red-600 dark:text-red-400">
+                    {formatCurrency(metrics.expenses)}
+                  </td>
+                  <td className="px-6 py-4"></td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-gray-900 dark:text-white">
+                    {metrics.income > 0 ? ((metrics.expenses / metrics.income) * 100).toFixed(1) : 0}%
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </tfoot>
+            </table>
+          )}
         </div>
       </div>
 
