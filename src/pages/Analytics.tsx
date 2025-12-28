@@ -15,14 +15,15 @@ import {
   LineChart as LineChartIcon
 } from 'lucide-react'
 import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  ComposedChart,
+  Bar
 } from 'recharts'
 
 type DateRange = '3months' | '6months' | '1year' | 'custom'
@@ -376,7 +377,7 @@ export default function Analytics() {
         </div>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={metrics.monthlyMetrics.map(m => ({
+            <ComposedChart data={metrics.monthlyMetrics.map(m => ({
               ...m,
               monthLabel: new Date(m.month + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
             }))}>
@@ -388,10 +389,20 @@ export default function Analytics() {
                 tickLine={false}
               />
               <YAxis 
+                yAxisId="left"
                 stroke="#9CA3AF" 
                 fontSize={12}
                 tickLine={false}
                 tickFormatter={(value) => `₱${(value / 1000).toFixed(0)}k`}
+              />
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                stroke="#F59E0B" 
+                fontSize={12}
+                tickLine={false}
+                tickFormatter={(value) => `${value}%`}
+                domain={[0, 100]}
               />
               <Tooltip 
                 contentStyle={{ 
@@ -400,39 +411,66 @@ export default function Analytics() {
                   borderRadius: '8px',
                   color: '#F9FAFB'
                 }}
-                formatter={(value: number) => [formatCurrency(value), '']}
+                formatter={(value: number, name: string) => {
+                  if (name === 'Gross Margin %') return [`${value.toFixed(1)}%`, name]
+                  return [formatCurrency(value), name]
+                }}
                 labelStyle={{ color: '#9CA3AF' }}
               />
               <Legend />
-              <Line 
-                type="monotone" 
+              <Bar 
+                yAxisId="left"
                 dataKey="income" 
                 name="Revenue"
-                stroke="#10B981" 
-                strokeWidth={2}
-                dot={{ fill: '#10B981', strokeWidth: 2 }}
-                activeDot={{ r: 6 }}
+                fill="#10B981"
+                opacity={0.8}
+                radius={[4, 4, 0, 0]}
               />
-              <Line 
-                type="monotone" 
+              <Bar 
+                yAxisId="left"
                 dataKey="expenses" 
                 name="COGS"
-                stroke="#EF4444" 
-                strokeWidth={2}
-                dot={{ fill: '#EF4444', strokeWidth: 2 }}
-                activeDot={{ r: 6 }}
+                fill="#EF4444"
+                opacity={0.8}
+                radius={[4, 4, 0, 0]}
               />
               <Line 
+                yAxisId="left"
                 type="monotone" 
                 dataKey="grossProfit" 
                 name="Gross Profit"
                 stroke="#3B82F6" 
-                strokeWidth={2}
+                strokeWidth={3}
                 dot={{ fill: '#3B82F6', strokeWidth: 2 }}
                 activeDot={{ r: 6 }}
               />
-            </LineChart>
+              <Line 
+                yAxisId="right"
+                type="monotone" 
+                dataKey="grossMargin" 
+                name="Gross Margin %"
+                stroke="#F59E0B" 
+                strokeWidth={3}
+                strokeDasharray="5 5"
+                dot={{ fill: '#F59E0B', strokeWidth: 2 }}
+                activeDot={{ r: 6 }}
+              />
+            </ComposedChart>
           </ResponsiveContainer>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 bg-green-500 rounded"></span> Revenue (bars)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 bg-red-500 rounded"></span> COGS (bars)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 bg-blue-500 rounded"></span> Gross Profit (line)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 bg-yellow-500 rounded"></span> Gross Margin % (dashed line, right axis)
+          </span>
         </div>
       </div>
 
