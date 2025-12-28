@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useBranch } from '../contexts/BranchContext'
 import { api } from '../lib/api'
 import { Transaction } from '../types'
@@ -17,10 +17,12 @@ import {
   Target,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Camera
 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import html2canvas from 'html2canvas'
 import {
   Line,
   XAxis,
@@ -44,6 +46,8 @@ export default function Analytics() {
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
   const [tableTab, setTableTab] = useState<TableTab>('revenue')
+  const [exportingPDF, setExportingPDF] = useState(false)
+  const analyticsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     async function fetchTransactions() {
@@ -356,7 +360,54 @@ export default function Analytics() {
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
   }
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
+    if (!analyticsRef.current) return
+    
+    setExportingPDF(true)
+    
+    try {
+      // Capture the analytics page as an image
+      const canvas = await html2canvas(analyticsRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#111827' // dark background
+      })
+      
+      const imgData = canvas.toDataURL('image/png')
+      const imgWidth = canvas.width
+      const imgHeight = canvas.height
+      
+      // Calculate PDF dimensions (A4 width, variable height)
+      const pdfWidth = 210 // A4 width in mm
+      const pdfHeight = (imgHeight * pdfWidth) / imgWidth
+      
+      const doc = new jsPDF({
+        orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+        unit: 'mm',
+        format: [pdfWidth, Math.min(pdfHeight + 20, 500)] // Cap height to avoid huge PDFs
+      })
+      
+      // Add header
+      doc.setFontSize(16)
+      doc.setTextColor(59, 130, 246)
+      doc.text(`${currentBranch?.displayName || 'Branch'} - Analytics Report`, pdfWidth / 2, 10, { align: 'center' })
+      
+      // Add the captured image
+      doc.addImage(imgData, 'PNG', 0, 15, pdfWidth, pdfHeight)
+      
+      // Save
+      doc.save(`analytics-report-${currentBranch?.name || 'branch'}-${new Date().toISOString().split('T')[0]}.pdf`)
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      // Fallback to table-based PDF
+      generateTablePDF()
+    } finally {
+      setExportingPDF(false)
+    }
+  }
+
+  const generateTablePDF = () => {
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
     
@@ -448,7 +499,7 @@ export default function Analytics() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={analyticsRef}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -464,10 +515,20 @@ export default function Analytics() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={generatePDF}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            disabled={exportingPDF}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Download className="w-4 h-4" />
-            Download PDF
+            {exportingPDF ? (
+              <>
+                <Camera className="w-4 h-4 animate-pulse" />
+                Capturing...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Download PDF
+              </>
+            )}
           </button>
         </div>
       </div>
