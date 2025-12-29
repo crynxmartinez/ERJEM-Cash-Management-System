@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useBranch } from '../contexts/BranchContext'
 import { api } from '../lib/api'
+import { TrendingDown, TrendingUp, DollarSign, PiggyBank } from 'lucide-react'
 
 export default function Monthly() {
   const { currentBranch } = useBranch()
@@ -200,30 +201,78 @@ export default function Monthly() {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             {months[month1]} {year1}
           </h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-700 dark:text-gray-300">Expenses</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="grid grid-cols-2 gap-3">
+            {/* Expenses Card */}
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-red-100 dark:bg-red-900/40 rounded-lg">
+                  <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+                </div>
+                <span className="text-sm font-medium text-red-700 dark:text-red-400">Expenses</span>
+              </div>
+              <p className="text-xl font-bold text-red-600 dark:text-red-400">
                 ₱{month1Expenses.toLocaleString()}
-              </span>
+              </p>
             </div>
-            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-700 dark:text-gray-300">Income</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+
+            {/* Income Card */}
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-green-100 dark:bg-green-900/40 rounded-lg">
+                  <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+                </div>
+                <span className="text-sm font-medium text-green-700 dark:text-green-400">Income</span>
+              </div>
+              <p className="text-xl font-bold text-green-600 dark:text-green-400">
                 ₱{month1Income.toLocaleString()}
-              </span>
+              </p>
             </div>
-            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-700 dark:text-gray-300">Profit</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+
+            {/* Profit Card */}
+            <div className={`rounded-lg p-4 border ${
+              month1Profit >= 0 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' 
+                : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`p-1.5 rounded-lg ${
+                  month1Profit >= 0 
+                    ? 'bg-blue-100 dark:bg-blue-900/40' 
+                    : 'bg-orange-100 dark:bg-orange-900/40'
+                }`}>
+                  <DollarSign className={`w-4 h-4 ${
+                    month1Profit >= 0 
+                      ? 'text-blue-600 dark:text-blue-400' 
+                      : 'text-orange-600 dark:text-orange-400'
+                  }`} />
+                </div>
+                <span className={`text-sm font-medium ${
+                  month1Profit >= 0 
+                    ? 'text-blue-700 dark:text-blue-400' 
+                    : 'text-orange-700 dark:text-orange-400'
+                }`}>Profit</span>
+              </div>
+              <p className={`text-xl font-bold ${
+                month1Profit >= 0 
+                  ? 'text-blue-600 dark:text-blue-400' 
+                  : 'text-orange-600 dark:text-orange-400'
+              }`}>
                 ₱{month1Profit.toLocaleString()}
-              </span>
+              </p>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 dark:text-gray-300">Profit to Saving</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱{month1Profit.toLocaleString()}
-              </span>
+
+            {/* Profit to Saving Card (15% of profit) */}
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-purple-100 dark:bg-purple-900/40 rounded-lg">
+                  <PiggyBank className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <span className="text-sm font-medium text-purple-700 dark:text-purple-400">Profit to Saving</span>
+              </div>
+              <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                ₱{Math.max(0, month1Profit * 0.15).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
+              <p className="text-xs text-purple-500 dark:text-purple-500 mt-1">15% of profit</p>
             </div>
           </div>
 
@@ -284,30 +333,78 @@ export default function Monthly() {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             {months[month2]} {year2}
           </h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-700 dark:text-gray-300">Expenses</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="grid grid-cols-2 gap-3">
+            {/* Expenses Card */}
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-red-100 dark:bg-red-900/40 rounded-lg">
+                  <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+                </div>
+                <span className="text-sm font-medium text-red-700 dark:text-red-400">Expenses</span>
+              </div>
+              <p className="text-xl font-bold text-red-600 dark:text-red-400">
                 ₱{month2Expenses.toLocaleString()}
-              </span>
+              </p>
             </div>
-            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-700 dark:text-gray-300">Income</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+
+            {/* Income Card */}
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-green-100 dark:bg-green-900/40 rounded-lg">
+                  <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+                </div>
+                <span className="text-sm font-medium text-green-700 dark:text-green-400">Income</span>
+              </div>
+              <p className="text-xl font-bold text-green-600 dark:text-green-400">
                 ₱{month2Income.toLocaleString()}
-              </span>
+              </p>
             </div>
-            <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
-              <span className="text-gray-700 dark:text-gray-300">Profit</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
+
+            {/* Profit Card */}
+            <div className={`rounded-lg p-4 border ${
+              month2Profit >= 0 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' 
+                : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`p-1.5 rounded-lg ${
+                  month2Profit >= 0 
+                    ? 'bg-blue-100 dark:bg-blue-900/40' 
+                    : 'bg-orange-100 dark:bg-orange-900/40'
+                }`}>
+                  <DollarSign className={`w-4 h-4 ${
+                    month2Profit >= 0 
+                      ? 'text-blue-600 dark:text-blue-400' 
+                      : 'text-orange-600 dark:text-orange-400'
+                  }`} />
+                </div>
+                <span className={`text-sm font-medium ${
+                  month2Profit >= 0 
+                    ? 'text-blue-700 dark:text-blue-400' 
+                    : 'text-orange-700 dark:text-orange-400'
+                }`}>Profit</span>
+              </div>
+              <p className={`text-xl font-bold ${
+                month2Profit >= 0 
+                  ? 'text-blue-600 dark:text-blue-400' 
+                  : 'text-orange-600 dark:text-orange-400'
+              }`}>
                 ₱{month2Profit.toLocaleString()}
-              </span>
+              </p>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 dark:text-gray-300">Profit to Saving</span>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                ₱{month2Profit.toLocaleString()}
-              </span>
+
+            {/* Profit to Saving Card (15% of profit) */}
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-purple-100 dark:bg-purple-900/40 rounded-lg">
+                  <PiggyBank className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <span className="text-sm font-medium text-purple-700 dark:text-purple-400">Profit to Saving</span>
+              </div>
+              <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                ₱{Math.max(0, month2Profit * 0.15).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
+              <p className="text-xs text-purple-500 dark:text-purple-500 mt-1">15% of profit</p>
             </div>
           </div>
 
