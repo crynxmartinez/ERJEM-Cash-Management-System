@@ -1,6 +1,6 @@
 # ERJEM Cash Flow Management System
 
-A modern, full-featured cash flow management application built with React, TypeScript, TailwindCSS, and Firebase.
+A modern, full-featured cash flow management application built with React, TypeScript, TailwindCSS, and Prisma with PostgreSQL.
 
 ## 🚀 Features
 
@@ -42,8 +42,8 @@ A modern, full-featured cash flow management application built with React, TypeS
 ### Additional Features
 - 🌓 Dark mode support
 - 📱 Fully responsive (mobile, tablet, desktop)
-- 🔐 Firebase Authentication
-- 🔥 Real-time Firestore database
+- 🔐 Custom authentication with bcrypt
+- �️ PostgreSQL database with Prisma ORM
 - 🎨 Modern UI with TailwindCSS and shadcn/ui
 - 📊 Interactive charts with Recharts
 - 🔔 Toast notifications
@@ -52,7 +52,9 @@ A modern, full-featured cash flow management application built with React, TypeS
 
 - **Frontend**: React 18 + TypeScript
 - **Styling**: TailwindCSS + shadcn/ui
-- **Backend**: Firebase (Auth, Firestore, Storage, Hosting)
+- **Backend**: Prisma ORM + PostgreSQL
+- **API**: Vercel Serverless Functions
+- **Authentication**: Custom with bcrypt
 - **Charts**: Recharts
 - **Icons**: Lucide React
 - **Forms**: React Hook Form + Zod
@@ -75,27 +77,27 @@ npm install
 
 3. Create `.env` file in the root directory:
 ```env
-VITE_FIREBASE_API_KEY=AIzaSyC1Wn3sbMSxDwJ4kbT6PZEX5vmc9RXznP4
-VITE_FIREBASE_AUTH_DOMAIN=erjem-9722c.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=erjem-9722c
-VITE_FIREBASE_STORAGE_BUCKET=erjem-9722c.firebasestorage.app
-VITE_FIREBASE_MESSAGING_SENDER_ID=193501059904
-VITE_FIREBASE_APP_ID=1:193501059904:web:99e2bb7d92e836615638a5
-VITE_FIREBASE_MEASUREMENT_ID=G-0MFXCSCYDH
+DATABASE_URL=postgres://YOUR_USERNAME:YOUR_PASSWORD@YOUR_HOST:5432/YOUR_DATABASE?sslmode=require
 ```
 
-4. Start the development server:
+4. Set up the database:
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+5. Start the development server:
 ```bash
 npm run dev
 ```
 
-5. Open your browser and navigate to `http://localhost:5173`
+6. Open your browser and navigate to `http://localhost:5173`
 
-## 🔥 Firebase Setup
+## �️ Database Schema
 
-### Firestore Collections
+### Prisma Models
 
-#### `branches`
+#### `Branch`
 ```typescript
 {
   id: string
@@ -111,7 +113,7 @@ npm run dev
 }
 ```
 
-#### `transactions`
+#### `Transaction`
 ```typescript
 {
   id: string
@@ -131,7 +133,7 @@ npm run dev
 }
 ```
 
-#### `users`
+#### `User`
 ```typescript
 {
   id: string
@@ -141,7 +143,7 @@ npm run dev
 }
 ```
 
-#### `userBranches`
+#### `UserBranch`
 ```typescript
 {
   id: string
@@ -152,32 +154,17 @@ npm run dev
 }
 ```
 
-### Firestore Security Rules
+### API Routes
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Allow authenticated users to read/write their own data
-    match /transactions/{transactionId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    match /branches/{branchId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
-    }
-    
-    match /userBranches/{userBranchId} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
+The application uses Vercel serverless functions for API endpoints:
+
+- `/api/auth/login` - User authentication
+- `/api/auth/register` - User registration
+- `/api/branches` - Branch management
+- `/api/transactions` - Transaction CRUD operations
+- `/api/users` - User management
+- `/api/import-csv` - CSV import for single branch
+- `/api/import-csv-branches` - CSV import for multiple branches
 
 ## 📱 Usage
 
@@ -234,31 +221,18 @@ service cloud.firestore {
 
 ## 🚀 Deployment
 
-### Firebase Hosting
+### Vercel Deployment
 
-1. Install Firebase CLI:
-```bash
-npm install -g firebase-tools
-```
+1. Push your code to GitHub
 
-2. Login to Firebase:
-```bash
-firebase login
-```
+2. Import project in Vercel dashboard
 
-3. Initialize Firebase:
-```bash
-firebase init
-```
+3. Set environment variables:
+   - `DATABASE_URL` - Your PostgreSQL connection string
 
-4. Build the project:
+4. Deploy:
 ```bash
-npm run build
-```
-
-5. Deploy to Firebase:
-```bash
-firebase deploy
+vercel deploy
 ```
 
 ## 📄 License
@@ -271,8 +245,8 @@ This project is private and proprietary.
 
 ## 🙏 Acknowledgments
 
-- Firebase for backend services
-- Vercel for Vite
+- Prisma for database ORM
+- Vercel for hosting and serverless functions
 - TailwindCSS for styling
 - shadcn/ui for components
 - Recharts for data visualization
