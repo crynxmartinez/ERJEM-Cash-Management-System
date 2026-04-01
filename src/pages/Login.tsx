@@ -107,19 +107,6 @@ export default function Login() {
               )}
             </button>
           </form>
-
-          {/* Register Link */}
-          <div className="mt-6 text-center">
-            <p className="text-gray-600 dark:text-gray-400">
-              Don't have an account?{' '}
-              <a
-                href="/register"
-                className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
-              >
-                Sign up
-              </a>
-            </p>
-          </div>
         </div>
       </div>
     </div>

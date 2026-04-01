@@ -5,7 +5,6 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { BranchProvider } from './contexts/BranchContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
-import Register from './pages/Register'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Personal from './pages/Personal'
@@ -22,7 +21,6 @@ function App() {
           <Router>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
               <Route
                 path="/"
                 element={
