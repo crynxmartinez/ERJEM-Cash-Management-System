@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useBranch } from '../contexts/BranchContext'
+import { useAuth } from '../contexts/AuthContext'
 import { api } from '../lib/api'
 import { Transaction } from '../types'
 import { 
@@ -40,6 +41,7 @@ type TableTab = 'revenue' | 'profit' | 'cogs'
 
 export default function Analytics() {
   const { currentBranch } = useBranch()
+  const { currentUser } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [dateRange, setDateRange] = useState<DateRange>('6months')
@@ -51,10 +53,10 @@ export default function Analytics() {
 
   useEffect(() => {
     async function fetchTransactions() {
-      if (!currentBranch) return
+      if (!currentBranch || !currentUser) return
       
       try {
-        const data = await api.getTransactions(currentBranch.id)
+        const data = await api.getTransactions(currentUser.id, currentBranch.id)
         setTransactions(data)
       } catch (error) {
         console.error('Error fetching transactions:', error)
@@ -64,7 +66,7 @@ export default function Analytics() {
     }
 
     fetchTransactions()
-  }, [currentBranch])
+  }, [currentBranch, currentUser])
 
   const filteredTransactions = useMemo(() => {
     const now = new Date()

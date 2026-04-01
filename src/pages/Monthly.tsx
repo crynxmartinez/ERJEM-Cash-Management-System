@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useBranch } from '../contexts/BranchContext'
+import { useAuth } from '../contexts/AuthContext'
 import { api } from '../lib/api'
 import { TrendingDown, TrendingUp, DollarSign, PiggyBank } from 'lucide-react'
 
 export default function Monthly() {
   const { currentBranch } = useBranch()
+  const { currentUser } = useAuth()
   const currentDate = new Date()
   const [month1, setMonth1] = useState(currentDate.getMonth())
   const [year1, setYear1] = useState(currentDate.getFullYear())
@@ -13,11 +15,11 @@ export default function Monthly() {
   const [transactions, setTransactions] = useState<any[]>([])
 
   useEffect(() => {
-    if (!currentBranch) return
+    if (!currentBranch || !currentUser) return
 
     const fetchTransactions = async () => {
       try {
-        const data = await api.getTransactions(currentBranch.id)
+        const data = await api.getTransactions(currentUser.id, currentBranch.id)
         setTransactions(data)
       } catch (error) {
         console.error('Error fetching transactions:', error)
@@ -25,7 +27,7 @@ export default function Monthly() {
     }
 
     fetchTransactions()
-  }, [currentBranch])
+  }, [currentBranch, currentUser])
 
   // Helper function to filter transactions by month and year
   const filterByMonthYear = (month: number, year: number) => {

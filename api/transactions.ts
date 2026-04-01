@@ -28,10 +28,17 @@ const parseDateAsPH = (dateInput: any): Date => {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === 'GET') {
-      const { branchId } = req.query
+      const { userId, branchId } = req.query
+      
+      if (!userId) {
+        return res.status(401).json({ error: 'userId required' })
+      }
       
       const transactions = await prisma.transaction.findMany({
-        where: branchId ? { branchId: branchId as string } : undefined,
+        where: {
+          userId: userId as string,
+          ...(branchId && { branchId: branchId as string })
+        },
         orderBy: { date: 'desc' }
       })
       
@@ -83,10 +90,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     
     if (req.method === 'DELETE') {
-      const { id } = req.query
+      const { id, userId } = req.query
       
-      if (!id) {
-        return res.status(400).json({ error: 'Transaction ID required' })
+      if (!id || !userId) {
+        return res.status(400).json({ error: 'Transaction ID and userId required' })
+      }
+      
+      // Verify ownership before deleting
+      const transaction = await prisma.transaction.findUnique({
+        where: { id: id as string }
+      })
+      
+      if (!transaction || transaction.userId !== userId) {
+        return res.status(403).json({ error: 'Unauthorized' })
       }
       
       await prisma.transaction.delete({

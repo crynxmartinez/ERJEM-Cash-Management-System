@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useBranch } from '../contexts/BranchContext'
+import { useAuth } from '../contexts/AuthContext'
 import { Search, Filter, Download, Plus, Edit2, Trash2, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useAuth } from '../contexts/AuthContext'
 import { api } from '../lib/api'
 import Papa from 'papaparse'
 
@@ -36,9 +36,10 @@ export default function Database() {
     }
 
     const fetchTransactions = async () => {
+      if (!currentUser) return
       setLoading(true)
       try {
-        const data = await api.getTransactions(currentBranch.id)
+        const data = await api.getTransactions(currentUser.id, currentBranch.id)
         setTransactions(data)
       } catch (error: any) {
         console.error('Error fetching transactions:', error)
@@ -49,14 +50,14 @@ export default function Database() {
     }
 
     fetchTransactions()
-  }, [currentBranch])
+  }, [currentBranch, currentUser])
 
   const confirmDelete = async () => {
-    if (!deleteConfirm) return
+    if (!deleteConfirm || !currentUser) return
 
     const deleteToast = toast.loading('Deleting transaction...')
     try {
-      await api.deleteTransaction(deleteConfirm)
+      await api.deleteTransaction(deleteConfirm, currentUser.id)
       setTransactions(transactions.filter(t => t.id !== deleteConfirm))
       toast.success('Transaction deleted successfully!', { id: deleteToast })
       setDeleteConfirm(null)

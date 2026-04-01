@@ -11,8 +11,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     if (req.method === 'GET') {
+      const { userId } = req.query
+      
+      if (!userId) {
+        return res.status(401).json({ error: 'userId required' })
+      }
+      
       const branches = await prisma.branch.findMany({
-        where: { isActive: true },
+        where: { 
+          isActive: true,
+          createdBy: userId as string
+        },
         orderBy: { name: 'asc' }
       })
       

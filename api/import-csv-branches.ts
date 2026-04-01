@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Get unique branch IDs from transactions
     const branchIds = [...new Set(transactions.map((t: any) => t.branchId).filter(Boolean))]
 
-    // Ensure all branches exist
+    // Ensure all branches exist and belong to user
     for (const branchId of branchIds) {
       await prisma.branch.upsert({
         where: { id: branchId as string },
@@ -34,6 +34,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           createdBy: userId
         }
       })
+    }
+    
+    // Verify all branches belong to this user
+    const userBranches = await prisma.branch.findMany({
+      where: { id: { in: branchIds as string[] }, createdBy: userId }
+    })
+    
+    if (userBranches.length !== branchIds.length) {
+      return res.status(403).json({ error: 'Some branches do not belong to this user' })
     }
 
     // Helper to parse date as Philippine time (UTC+8)

@@ -18,6 +18,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!userId || !branchId) {
       return res.status(400).json({ error: 'userId and branchId required' })
     }
+    
+    // Verify branch belongs to user
+    const branch = await prisma.branch.findFirst({
+      where: { id: branchId, createdBy: userId }
+    })
+    
+    if (!branch) {
+      return res.status(403).json({ error: 'Branch not found or unauthorized' })
+    }
 
     // Ensure user exists
     await prisma.user.upsert({

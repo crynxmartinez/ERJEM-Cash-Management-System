@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useBranch } from '../contexts/BranchContext'
+import { useAuth } from '../contexts/AuthContext'
 import { TrendingUp, TrendingDown, DollarSign, PiggyBank } from 'lucide-react'
 import { api } from '../lib/api'
 
 export default function Dashboard() {
   const { currentBranch } = useBranch()
+  const { currentUser } = useAuth()
   const currentYear = new Date().getFullYear()
   const [year1, setYear1] = useState(currentYear)
   const [year2, setYear2] = useState(currentYear - 1)
   const [transactions, setTransactions] = useState<any[]>([])
 
   useEffect(() => {
-    if (!currentBranch) return
+    if (!currentBranch || !currentUser) return
 
     const fetchTransactions = async () => {
       try {
-        const data = await api.getTransactions(currentBranch.id)
+        const data = await api.getTransactions(currentUser.id, currentBranch.id)
         setTransactions(data)
       } catch (error) {
         console.error('Error fetching transactions:', error)
@@ -23,7 +25,7 @@ export default function Dashboard() {
     }
 
     fetchTransactions()
-  }, [currentBranch])
+  }, [currentBranch, currentUser])
 
   // Filter transactions by year1
   const year1Transactions = transactions.filter(t => {

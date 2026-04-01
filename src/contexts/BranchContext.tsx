@@ -32,46 +32,6 @@ export function BranchProvider({ children }: BranchProviderProps) {
   const [availableBranches, setAvailableBranches] = useState<Branch[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Initialize default branches if none exist
-  const initializeDefaultBranches = async () => {
-    if (!currentUser) return
-
-    try {
-      const branches = await api.getBranches()
-      
-      if (branches.length === 0) {
-        // Create default branches in Prisma
-        const defaultBranches = [
-          {
-            id: 'erjem-glass',
-            name: 'ERJEM Glass',
-            displayName: 'ERJEM Glass',
-            createdBy: currentUser.id,
-            isActive: true,
-            currency: 'PHP',
-            fiscalYearStart: 1,
-          },
-          {
-            id: 'erjem-machine-shop',
-            name: 'ERJEM Machine Shop',
-            displayName: 'ERJEM Machine Shop',
-            createdBy: currentUser.id,
-            isActive: true,
-            currency: 'PHP',
-            fiscalYearStart: 1,
-          },
-        ]
-
-        for (const branch of defaultBranches) {
-          await api.createBranch(branch)
-        }
-
-        toast.success('Default branches created!')
-      }
-    } catch (error) {
-      console.error('Error initializing branches:', error)
-    }
-  }
 
   const fetchBranches = async () => {
     if (!currentUser) {
@@ -80,11 +40,8 @@ export function BranchProvider({ children }: BranchProviderProps) {
     }
 
     try {
-      // Initialize default branches if needed
-      await initializeDefaultBranches()
-
-      // Get all branches from Prisma
-      const branches = await api.getBranches()
+      // Get user's branches from Prisma
+      const branches = await api.getBranches(currentUser.id)
 
       setAvailableBranches(branches)
 

@@ -2,11 +2,10 @@ const API_BASE = '/api'
 
 export const api = {
   // Transactions
-  async getTransactions(branchId?: string) {
-    const url = branchId 
-      ? `${API_BASE}/transactions?branchId=${branchId}`
-      : `${API_BASE}/transactions`
-    const res = await fetch(url)
+  async getTransactions(userId: string, branchId?: string) {
+    const params = new URLSearchParams({ userId })
+    if (branchId) params.append('branchId', branchId)
+    const res = await fetch(`${API_BASE}/transactions?${params}`)
     if (!res.ok) throw new Error('Failed to fetch transactions')
     return res.json()
   },
@@ -21,8 +20,8 @@ export const api = {
     return res.json()
   },
 
-  async deleteTransaction(id: string) {
-    const res = await fetch(`${API_BASE}/transactions?id=${id}`, {
+  async deleteTransaction(id: string, userId: string) {
+    const res = await fetch(`${API_BASE}/transactions?id=${id}&userId=${userId}`, {
       method: 'DELETE'
     })
     if (!res.ok) throw new Error('Failed to delete transaction')
@@ -58,8 +57,8 @@ export const api = {
   },
 
   // Branches
-  async getBranches() {
-    const res = await fetch(`${API_BASE}/branches`)
+  async getBranches(userId: string) {
+    const res = await fetch(`${API_BASE}/branches?userId=${userId}`)
     if (!res.ok) throw new Error('Failed to fetch branches')
     return res.json()
   },

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useBranch } from '../contexts/BranchContext'
+import { useAuth } from '../contexts/AuthContext'
 import { Download, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useAuth } from '../contexts/AuthContext'
 import { api } from '../lib/api'
 import Papa from 'papaparse'
 
@@ -17,11 +17,11 @@ export default function Personal() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!currentBranch) return
+    if (!currentBranch || !currentUser) return
 
     const fetchTransactions = async () => {
       try {
-        const data = await api.getTransactions(currentBranch.id)
+        const data = await api.getTransactions(currentUser.id, currentBranch.id)
         // Store all transactions for export
         setAllTransactions(data)
         // Filter personal only for display
@@ -33,7 +33,7 @@ export default function Personal() {
     }
 
     fetchTransactions()
-  }, [currentBranch])
+  }, [currentBranch, currentUser])
 
   // Filter transactions by selected month/year
   const filteredTransactions = transactions
